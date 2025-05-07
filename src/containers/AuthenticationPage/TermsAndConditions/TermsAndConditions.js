@@ -58,25 +58,31 @@ const TermsAndConditions = props => {
     </span>
   );
 
+  const text = intl.formatMessage({ id: 'AuthenticationPage.termsAndConditionsAcceptText' } , { termsLink, privacyLink });
+
   return (
     <div className={css.root}>
-      <FieldCheckboxGroup
-        name="terms"
-        id={formId ? `${formId}.terms-accepted` : 'terms-accepted'}
-        optionLabelClassName={css.finePrint}
-        options={[
-          {
-            key: 'tos-and-privacy',
-            label: intl.formatMessage(
-              { id: 'AuthenticationPage.termsAndConditionsAcceptText' },
-              { termsLink, privacyLink }
-            ),
-          },
-        ]}
-        validate={requiredFieldArrayCheckbox(
-          intl.formatMessage({ id: 'AuthenticationPage.termsAndConditionsAcceptRequired' })
-        )}
-      />
+      {1 ? (
+        <div>{text}</div>
+      ) : (
+        <FieldCheckboxGroup
+          name="terms"
+          id={formId ? `${formId}.terms-accepted` : 'terms-accepted'}
+          optionLabelClassName={css.finePrint}
+          options={[
+            {
+              key: 'tos-and-privacy',
+              label: intl.formatMessage(
+                { id: 'AuthenticationPage.termsAndConditionsAcceptText' },
+                { termsLink, privacyLink }
+              ),
+            },
+          ]}
+          validate={requiredFieldArrayCheckbox(
+            intl.formatMessage({ id: 'AuthenticationPage.termsAndConditionsAcceptRequired' })
+          )}
+        />
+      )}
     </div>
   );
 };

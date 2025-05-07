@@ -26,6 +26,7 @@ const createFilterOptions = options => options.map(o => ({ key: `${o.option}`, l
 const getLabel = fieldConfig => fieldConfig?.saveConfig?.label || fieldConfig?.label;
 
 const CustomFieldEnum = props => {
+  console.log("props", props)
   const { name, fieldConfig, defaultRequiredMessage, formId, intl } = props;
   const { enumOptions = [], saveConfig } = fieldConfig || {};
   const { placeholderMessage, isRequired, requiredMessage } = saveConfig || {};

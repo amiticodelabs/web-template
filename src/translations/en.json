@@ -1,5 +1,6 @@
 {
   "AddressLinkMaybe.viewOnGoogleMaps": "View on Google Maps",
+  "SignupForm.categoryPlaceholder": "category",
   "AuthenticationPage.confirmSignupInfoText": "Please check that your information is correct.",
   "AuthenticationPage.confirmSignupWithIdpTitle": "Sign up with {idp}",
   "AuthenticationPage.fixEmail": "Is there an error in your email? {fixEmailLink}.",
@@ -855,8 +856,10 @@
   "SignupForm.firstNamePlaceholder": "Jane",
   "SignupForm.firstNameRequired": "You need to add a first name.",
   "SignupForm.lastNameLabel": "Last name",
+  "SignupForm.categoryLabel": "category",
   "SignupForm.lastNamePlaceholder": "Doe",
   "SignupForm.lastNameRequired": "You need to add a last name.",
+  "SignupForm.categoryRequired": "You need to add a category .",
   "SignupForm.passwordLabel": "Password",
   "SignupForm.passwordPlaceholder": "Enter your password…",
   "SignupForm.passwordRequired": "You need to add a password.",

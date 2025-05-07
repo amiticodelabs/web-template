@@ -21,6 +21,8 @@ import {
   FieldTextInput,
   H4,
   CustomExtendedDataField,
+  LocationAutocompleteInput,
+  FieldLocationAutocompleteInput,
 } from '../../../components';
 
 import css from './ProfileSettingsForm.module.css';
@@ -148,9 +150,13 @@ class ProfileSettingsFormComponent extends Component {
             values,
             userFields,
             userTypeConfig,
+            autoFocus
           } = fieldRenderProps;
 
+          console.log('values', values);
+
           const user = ensureCurrentUser(currentUser);
+          const isMobile = false;
 
           // First name
           const firstNameLabel = intl.formatMessage({
@@ -269,7 +275,13 @@ class ProfileSettingsFormComponent extends Component {
             userTypeConfig?.userType,
             false
           );
-
+          const identity = v => v;
+          const addressRequiredMessage = intl.formatMessage({
+            id: 'EditListingLocationForm.addressRequired',
+          });
+          const addressNotRecognizedMessage = intl.formatMessage({
+            id: 'EditListingLocationForm.addressNotRecognized',
+          });
           return (
             <Form
               className={classes}
@@ -396,6 +408,30 @@ class ProfileSettingsFormComponent extends Component {
                 ))}
               </div>
               {submitError}
+
+              {/* <label htmlFor="location">Select location:</label>
+              <Field name="location"  format={identity} component={LocationAutocompleteInput} /> */}
+              <FieldLocationAutocompleteInput
+                rootClassName={css.locationAddress}
+                inputClassName={css.locationAutocompleteInput}
+                iconClassName={css.locationAutocompleteInputIcon}
+                predictionsClassName={css.predictionsRoot}
+                validClassName={css.validLocation}
+                autoFocus={autoFocus}
+                name="location"
+                label={intl.formatMessage({ id: 'EditListingLocationForm.address' })}
+                placeholder={intl.formatMessage({
+                  id: 'EditListingLocationForm.addressPlaceholder',
+                })}
+                useDefaultPredictions={false}
+                format={identity}
+                valueFromForm={values.location}
+                validate={validators.composeValidators(
+                  validators.autocompleteSearchRequired(addressRequiredMessage),
+                  validators.autocompletePlaceSelected(addressNotRecognizedMessage)
+                )}
+              />
+
               <Button
                 className={css.submitButton}
                 type="submit"

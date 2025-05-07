@@ -1,5 +1,5 @@
 import React from 'react';
-import { Form as FinalForm } from 'react-final-form';
+import { Form as FinalForm , Field } from 'react-final-form';
 import arrayMutators from 'final-form-arrays';
 import classNames from 'classnames';
 
@@ -8,13 +8,24 @@ import { propTypes } from '../../../util/types';
 import * as validators from '../../../util/validators';
 import { getPropsForCustomUserFieldInputs } from '../../../util/userHelpers';
 
-import { Form, PrimaryButton, FieldTextInput, CustomExtendedDataField } from '../../../components';
+
+import {
+  Form,
+  PrimaryButton,
+  FieldTextInput,
+  CustomExtendedDataField,
+  FieldRadioButton,
+  LocationAutocompleteInput,
+  Button,
+} from '../../../components';
 
 import FieldSelectUserType from '../FieldSelectUserType';
 import UserFieldDisplayName from '../UserFieldDisplayName';
 import UserFieldPhoneNumber from '../UserFieldPhoneNumber';
 
 import css from './SignupForm.module.css';
+import TopbarSearchForm from '../../TopbarContainer/Topbar/TopbarSearchForm/TopbarSearchForm';
+// import LocationAutocompleteInput from '../../../components/LocationAutocompleteInput';
 
 const getSoleUserTypeMaybe = userTypes =>
   Array.isArray(userTypes) && userTypes.length === 1 ? userTypes[0].userType : null;
@@ -38,6 +49,8 @@ const SignupFormComponent = props => (
         userTypes,
         userFields,
         values,
+        showAsRequired,
+        pristine
       } = formRenderProps;
 
       const { userType } = values || {};
@@ -95,22 +108,28 @@ const SignupFormComponent = props => (
 
       const noUserTypes = !userType && !(userTypes?.length > 0);
       const userTypeConfig = userTypes.find(config => config.userType === userType);
-      const showDefaultUserFields = userType || noUserTypes;
+      // const showDefaultUserFields = userType || noUserTypes;
+      const showDefaultUserFields = true;
       const showCustomUserFields = (userType || noUserTypes) && userFieldProps?.length > 0;
 
       const classes = classNames(rootClassName || css.root, className);
       const submitInProgress = inProgress;
       const submitDisabled = invalid || submitInProgress;
 
+      const appConfig = {
+        // some configuration that determines if keyword search is used
+        mainSearchType: 'keywords', // or 'location'
+      };
+    
+      const handleSearchSubmit = values => {
+        console.log('Search form submitted with:', values);
+        // Navigate or update state based on search input
+      };
+
+      const identity = v => v;
+
       return (
         <Form className={classes} onSubmit={handleSubmit}>
-          <FieldSelectUserType
-            name="userType"
-            userTypes={userTypes}
-            hasExistingUserType={!!preselectedUserType}
-            intl={intl}
-          />
-
           {showDefaultUserFields ? (
             <div className={css.defaultUserFields}>
               <FieldTextInput
@@ -165,6 +184,25 @@ const SignupFormComponent = props => (
                 />
               </div>
 
+              {/* <FieldTextInput
+                  className={css.lastNameRoot}
+                  type="text"
+                  id={formId ? `${formId}.lname` : 'lname'}
+                  name="category"
+                  autoComplete="family-name"
+                  label={intl.formatMessage({
+                    id: 'SignupForm.categoryLabel',
+                  })}
+                  placeholder={intl.formatMessage({
+                    id: 'SignupForm.categoryPlaceholder',
+                  })}
+                  validate={validators.required(
+                    intl.formatMessage({
+                      id: 'SignupForm.lastNameRequired',
+                    })
+                  )}
+                /> */}
+
               <UserFieldDisplayName
                 formName="SignupForm"
                 className={css.row}
@@ -195,6 +233,30 @@ const SignupFormComponent = props => (
               />
             </div>
           ) : null}
+          {console.log({ userTypes })}
+
+          {userTypes.map((config, index) => (
+            <FieldRadioButton
+              id={index}
+              name="userType"
+              label={config.label}
+              value={config.label}
+            />
+          ))}
+          {/* <FieldRadioButton
+             id={formId ? `${formId}.opt-1` : 'email'}
+            name="option-group"
+            label="Seller"
+            value="Seller"
+            showAsRequired={showAsRequired}
+          />
+          <FieldRadioButton
+             id={formId ? `${formId}.opt-2` : 'email'}
+            name="option-group"
+            label="Buyer"
+            value="Buyer"
+            showAsRequired={showAsRequired}
+          /> */}
 
           {showCustomUserFields ? (
             <div className={css.customFields}>
@@ -210,6 +272,10 @@ const SignupFormComponent = props => (
               <FormattedMessage id="SignupForm.signUp" />
             </PrimaryButton>
           </div>
+
+          <label htmlFor="location">Select location:</label>
+            <Field name="location" format={identity} component={LocationAutocompleteInput} />
+            
         </Form>
       );
     }}

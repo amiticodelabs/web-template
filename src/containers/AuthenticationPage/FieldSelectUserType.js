@@ -6,7 +6,7 @@ import { intlShape } from '../../util/reactIntl';
 import { propTypes } from '../../util/types';
 import * as validators from '../../util/validators';
 
-import { FieldSelect } from '../../components';
+import { FieldRadioButton, FieldSelect } from '../../components';
 
 import css from './AuthenticationPage.module.css';
 

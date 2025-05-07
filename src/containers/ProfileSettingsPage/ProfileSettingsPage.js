@@ -14,7 +14,15 @@ import {
 } from '../../util/userHelpers';
 import { isScrollingDisabled } from '../../ducks/ui.duck';
 
-import { H3, Page, UserNav, NamedLink, LayoutSingleColumn } from '../../components';
+import {
+  H3,
+  Page,
+  UserNav,
+  NamedLink,
+  LayoutSingleColumn,
+  LocationAutocompleteInput,
+  Button,
+} from '../../components';
 
 import TopbarContainer from '../../containers/TopbarContainer/TopbarContainer';
 import FooterContainer from '../../containers/FooterContainer/FooterContainer';
@@ -23,6 +31,8 @@ import ProfileSettingsForm from './ProfileSettingsForm/ProfileSettingsForm';
 
 import { updateProfile, uploadImage } from './ProfileSettingsPage.duck';
 import css from './ProfileSettingsPage.module.css';
+import { Field } from 'react-final-form';
+import { types as sdkTypes } from '../../util/sdkLoader';
 
 const onImageUploadHandler = (values, fn) => {
   const { id, imageId, file } = values;
@@ -70,6 +80,7 @@ const ViewProfileLink = props => {
  */
 export const ProfileSettingsPageComponent = props => {
   const config = useConfiguration();
+  const { LatLng, LatLngBounds } = sdkTypes;
   const intl = useIntl();
   const {
     currentUser,
@@ -86,7 +97,8 @@ export const ProfileSettingsPageComponent = props => {
   const { userFields, userTypes = [] } = config.user;
 
   const handleSubmit = (values, userType) => {
-    const { firstName, lastName, displayName, bio: rawBio, ...rest } = values;
+    const { firstName, lastName, displayName, location, bio: rawBio, ...rest } = values;
+    console.log('rest', rest);
 
     const displayNameMaybe = displayName
       ? { displayName: displayName.trim() }
@@ -94,6 +106,17 @@ export const ProfileSettingsPageComponent = props => {
 
     // Ensure that the optional bio is a string
     const bio = rawBio || '';
+    // console.log("location" , location);
+    // map = typeof window !== 'undefined' && window.mapboxMap ? window.mapboxMap : null;
+    // const viewportMapBounds = getMapBounds(map);
+    // const newLocation = sdkBoundsToFixedCoordinates(viewportMapBounds , 8);
+    // const newLocation =  new LatLngBounds(new LatLng(location.bounds.ne.lat, location.bounds.ne.lng), new LatLng(location.bounds.sw.lat, location.bounds.sw.lng))
+    // const newOrigin= new LatLng(location.selectedPlace.origin.lat , location.selectedPlace.origin.lng );
+    // console.log("newOrigin" , newOrigin)
+    // const newLocation = {...location , origin : newOrigin};
+    // console.log("newLocation" , newLocation)
+
+
 
     const profile = {
       firstName: firstName.trim(),
@@ -101,6 +124,7 @@ export const ProfileSettingsPageComponent = props => {
       ...displayNameMaybe,
       bio,
       publicData: {
+        location,
         ...pickUserFieldsData(rest, 'public', userType, userFields),
       },
       protectedData: {
@@ -141,6 +165,9 @@ export const ProfileSettingsPageComponent = props => {
   const isDisplayNameIncluded = userTypeConfig?.defaultUserFields?.displayName !== false;
   // ProfileSettingsForm decides if it's allowed to show the input field.
   const displayNameMaybe = isDisplayNameIncluded && displayName ? { displayName } : {};
+  const identity = v => v;
+  const location = publicData.location;
+  console.log(publicData);
 
   const profileSettingsForm = user.id ? (
     <ProfileSettingsForm
@@ -149,6 +176,13 @@ export const ProfileSettingsPageComponent = props => {
       initialValues={{
         firstName,
         lastName,
+        location: {
+          ...location,
+          selectedPlace: {
+            ...location.selectedPlace,
+            origin: new LatLng(location.selectedPlace.origin.lat , location.selectedPlace.origin.lng)
+          }
+        },
         ...displayNameMaybe,
         bio,
         profileImage: user.profileImage,
@@ -170,6 +204,7 @@ export const ProfileSettingsPageComponent = props => {
   ) : null;
 
   const title = intl.formatMessage({ id: 'ProfileSettingsPage.title' });
+  // const location = publicData.location.search
 
   return (
     <Page className={css.root} title={title} scrollingDisabled={scrollingDisabled}>
@@ -192,6 +227,11 @@ export const ProfileSettingsPageComponent = props => {
           </div>
           {profileSettingsForm}
         </div>
+        {/* {currentUser ? (
+        <p>Location : {location}</p>
+      ):null} */}
+        {/* <label htmlFor="location">Select location:</label>
+      <Field name="location" format={identity} component={LocationAutocompleteInput} /> */}
       </LayoutSingleColumn>
     </Page>
   );

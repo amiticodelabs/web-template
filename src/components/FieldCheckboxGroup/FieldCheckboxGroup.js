@@ -40,13 +40,24 @@ const FieldCheckboxRenderer = props => {
           const textClassNameMaybe = textClassName ? { textClassName } : {};
           return (
             <li key={fieldId} className={css.item}>
+              {/* {1 ? (
+                null
+              ) : (
+                <FieldCheckbox
+                  id={fieldId}
+                  name={fields.name}
+                  label={option.label}
+                  value={option.key}
+                  {...textClassNameMaybe}
+                />
+              )} */}
               <FieldCheckbox
-                id={fieldId}
-                name={fields.name}
-                label={option.label}
-                value={option.key}
-                {...textClassNameMaybe}
-              />
+                  id={fieldId}
+                  name={fields.name}
+                  label={option.label}
+                  value={option.key}
+                  {...textClassNameMaybe}
+                />
             </li>
           );
         })}

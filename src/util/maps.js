@@ -171,7 +171,7 @@ export const circlePolyline = (latlng, radius) => {
  * when map is moved manually
  *
  * @param {LatLngBounds} sdkBounds - bounds to be changed to fixed precision
- * @param {Number} fixedPrecision - integer to be used on tofixed() change.
+ * @param {Number} fixedPrecision -  to be used on tofixed() change.
  *
  * @return {LatLngBounds} - bounds cut to given fixed precision
  */

@@ -237,7 +237,7 @@ export const validHKID = message => value => {
   // Calculate the checksum for character part.
   // Transfer letters to numbers so that A=10, B=11, C=12 etc.
   // If there is only one letter in the ID use 36 as the first value
-  // Total calculation is weighted so that 1st digit is x9, 2nd digit x8, 3rd digit x7 etc.
+  // Total calculation is weighted so that 1st digit is x9, 2nd digit x8, 3rd digit x7 etc.r
 
   const strValidChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   let checkSum = 0;

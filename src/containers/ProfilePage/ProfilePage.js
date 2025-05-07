@@ -213,6 +213,8 @@ export const MainContent = props => {
     hideReviews,
   } = props;
 
+  console.log('props', props);
+  
   const hasListings = listings.length > 0;
   const hasMatchMedia = typeof window !== 'undefined' && window?.matchMedia;
   const isMobileLayout =
@@ -253,6 +255,8 @@ export const MainContent = props => {
           intl={intl}
         />
       ) : null}
+
+      {location ? <p>`Location : ${publicData.location}`</p> : null}
 
       {hasListings ? (
         <div className={listingsContainerClasses}>
@@ -313,7 +317,7 @@ export const ProfilePageComponent = props => {
   } = props;
   const isVariant = pathParams.variant?.length > 0;
   const isPreview = isVariant && pathParams.variant === PROFILE_PAGE_PENDING_APPROVAL_VARIANT;
-
+  console.log(currentUser);
   // Stripe's onboarding needs a business URL for each seller, but the profile page can be
   // too empty for the provider at the time they are creating their first listing.
   // To remedy the situation, we redirect Stripe's crawler to the landing page of the marketplace.
