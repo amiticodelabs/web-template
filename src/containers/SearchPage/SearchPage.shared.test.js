@@ -315,13 +315,13 @@ describe('SearchPage.helpers', () => {
 
     it('drops an invalid filter param value, when "dropNonFilterParams" is false', () => {
       const params = { pub_generalParam: 'one', pub_generalMultienum: 'invalid1,invalid2' };
-      const validParams = validFilterParams(params, filterConfigs, false);
+      const validParams = validFilterParams(params, filterConfigs, {}, false);
       expect(validParams).toEqual({ pub_generalParam: 'one' });
     });
 
     it('returns non-filter params, when "dropNonFilterParams" is false', () => {
       const params = { pub_generalParam: 'one', other_param: 'somevalue' };
-      const validParams = validFilterParams(params, filterConfigs, false);
+      const validParams = validFilterParams(params, filterConfigs, {}, false);
       expect(validParams).toEqual(params);
     });
   });

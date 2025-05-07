@@ -47,7 +47,6 @@ import {
   omitLimitedListingFieldParams,
   getDatesAndSeatsMaybe,
   getSearchPageResourceLocatorStringParams,
-  getActiveListingTypes,
 } from './SearchPage.shared';
 
 import FilterComponent from './FilterComponent';
@@ -127,17 +126,18 @@ export class SearchPageComponent extends Component {
     const { listingFields: listingFieldsConfig } = config?.listing || {};
     const { defaultFilters: defaultFiltersConfig, sortConfig } = config?.search || {};
     const { listingType: listingTypePathParam } = params;
-    const { activeListingTypes } = getActiveListingTypes(config, listingTypePathParam);
+    const activeListingTypes = config?.listing?.listingTypes.map(config => config.listingType);
     const listingCategories = config.categoryConfiguration.categories;
     const filterConfigs = {
       listingFieldsConfig,
       defaultFiltersConfig,
       listingCategories,
-      activeListingTypes,
-      listingTypePathParam,
+      activeListingTypes: activeListingTypes,
     };
 
     const urlQueryParams = validUrlQueryParamsFromProps(this.props);
+
+    const currentPathParams = { listingTypePathParam };
 
     return updatedURLParams => {
       const updater = prevState => {
@@ -160,7 +160,8 @@ export class SearchPageComponent extends Component {
               address,
               bounds,
             },
-            filterConfigs
+            filterConfigs,
+            currentPathParams
           ),
         };
       };
@@ -168,7 +169,12 @@ export class SearchPageComponent extends Component {
       const callback = () => {
         if (useHistoryPush) {
           const searchParams = this.state.currentQueryParams;
-          const search = cleanSearchFromConflictingParams(searchParams, filterConfigs, sortConfig);
+          const search = cleanSearchFromConflictingParams(
+            searchParams,
+            filterConfigs,
+            sortConfig,
+            currentPathParams
+          );
 
           const { routeName, pathParams } = getSearchPageResourceLocatorStringParams(
             routeConfiguration,
@@ -239,7 +245,7 @@ export class SearchPageComponent extends Component {
     const { listingFields } = config?.listing || {};
     const { defaultFilters: defaultFiltersRaw, sortConfig } = config?.search || {};
 
-    const { activeListingTypes } = getActiveListingTypes(config, listingTypePathParam);
+    const activeListingTypes = config?.listing?.listingTypes.map(config => config.listingType);
 
     const defaultFiltersConfig = listingTypePathParam
       ? defaultFiltersRaw.filter(f => f.key !== 'listingType')
@@ -261,6 +267,8 @@ export class SearchPageComponent extends Component {
       activeListingTypes,
     };
 
+    const currentPathParams = { listingTypePathParam };
+
     // Page transition might initially use values from previous search
     // urlQueryParams doesn't contain page specific url params
     // like mapSearch, page or origin (origin depends on config.maps.search.sortSearchByDistance)
@@ -269,7 +277,8 @@ export class SearchPageComponent extends Component {
       searchParams,
       filterConfigs,
       sortConfig,
-      isOriginInUse(config)
+      isOriginInUse(config),
+      currentPathParams
     );
     const validQueryParams = urlQueryParams;
 

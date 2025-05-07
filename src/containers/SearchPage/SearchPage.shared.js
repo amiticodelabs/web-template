@@ -45,23 +45,30 @@ const validURLParamForListingTypeData = (listingTypes, param) => {
  * @param {Object} filterConfigs contains listingFieldsConfig and defaultFiltersConfig.
  * @returns search parameters without currently restricted listing fields
  */
-export const omitLimitedListingFieldParams = (searchParams, filterConfigs) => {
+export const omitLimitedListingFieldParams = (searchParams, filterConfigs, pathParams = {}) => {
   const {
     listingFieldsConfig,
     defaultFiltersConfig,
     listingCategories,
     activeListingTypes,
-    listingTypePathParam,
   } = filterConfigs;
+  const { listingTypePathParam } = pathParams;
   const categorySearchConfig = defaultFiltersConfig.find(f => f.schemaType === 'category');
   const listingTypeSearchConfig = defaultFiltersConfig.find(f => f.schemaType === 'listingType');
   const validNestedCategoryParamNames = categorySearchConfig
     ? validURLParamForCategoryData(categorySearchConfig.key, listingCategories, 1, searchParams)
     : {};
 
-  const validListingTypeParamNames = listingTypeSearchConfig
-    ? validURLParamForListingTypeData(activeListingTypes, searchParams)
+  const listingTypeParamMaybe = listingTypePathParam
+    ? { pub_listingType: listingTypePathParam }
     : {};
+  const validListingTypeParamNames =
+    activeListingTypes && listingTypeSearchConfig
+      ? validURLParamForListingTypeData(activeListingTypes, {
+          ...searchParams,
+          ...listingTypeParamMaybe,
+        })
+      : {};
 
   return Object.entries(searchParams).reduce((picked, searchParam) => {
     const [searchParamKey, searchParamValue] = searchParam;
@@ -168,7 +175,12 @@ export const validURLParamForExtendedData = (
  * @param {Object} filterConfigs contains listingFieldsConfig and defaultFiltersConfig.
  * @param {boolean} dropNonFilterParams if false, extra params are passed through.
  */
-export const validFilterParams = (params, filterConfigs, dropNonFilterParams = true) => {
+export const validFilterParams = (
+  params,
+  filterConfigs,
+  pathParams = {},
+  dropNonFilterParams = true
+) => {
   const { listingFieldsConfig, defaultFiltersConfig, listingCategories } = filterConfigs;
 
   const listingFieldFiltersConfig = listingFieldsConfig.filter(
@@ -196,7 +208,7 @@ export const validFilterParams = (params, filterConfigs, dropNonFilterParams = t
   };
 
   // search params without category-restricted params
-  const unlimitedSearchParams = omitLimitedListingFieldParams(params, filterConfigs);
+  const unlimitedSearchParams = omitLimitedListingFieldParams(params, filterConfigs, pathParams);
   const paramEntries = Object.entries(unlimitedSearchParams);
 
   const listingFieldsAndBuiltInFilterParamNames = paramEntries.reduce((validParams, entry) => {
@@ -241,7 +253,7 @@ export const validUrlQueryParamsFromProps = props => {
   const { listingFields: listingFieldsConfig } = config?.listing || {};
   const { defaultFilters: defaultFiltersConfig } = config?.search || {};
   const { listingType: listingTypePathParam } = pathParams;
-  const { activeListingTypes } = getActiveListingTypes(config, listingTypePathParam);
+  const activeListingTypes = config?.listing?.listingTypes.map(config => config.listingType);
   const listingCategories = config.categoryConfiguration.categories;
   const filterConfigs = {
     listingFieldsConfig,
@@ -258,7 +270,7 @@ export const validUrlQueryParamsFromProps = props => {
   });
   // urlQueryParams doesn't contain page specific url params
   // like mapSearch, page or origin (origin depends on config.maps.search.sortSearchByDistance)
-  return validFilterParams(searchInURL, filterConfigs, false);
+  return validFilterParams(searchInURL, filterConfigs, { listingTypePathParam }, false);
 };
 
 /**
@@ -302,7 +314,12 @@ export const initialValues = (props, currentQueryParams) => (queryParamNames, is
  * @param {*} sortConfig
  * @returns sort parameter as null if sortConfig defines conflictingFilters
  */
-export const cleanSearchFromConflictingParams = (searchParams, filterConfigs, sortConfig) => {
+export const cleanSearchFromConflictingParams = (
+  searchParams,
+  filterConfigs,
+  sortConfig,
+  pathParams
+) => {
   // Single out filters that should disable SortBy when an active
   // keyword search sorts the listings according to relevance.
   // In those cases, sort parameter should be removed.
@@ -313,7 +330,11 @@ export const cleanSearchFromConflictingParams = (searchParams, filterConfigs, so
   );
 
   // search params without category-restricted params
-  const unlimitedSearchParams = omitLimitedListingFieldParams(searchParams, filterConfigs);
+  const unlimitedSearchParams = omitLimitedListingFieldParams(
+    searchParams,
+    filterConfigs,
+    pathParams
+  );
 
   return sortingFiltersActive
     ? { ...unlimitedSearchParams, [sortConfig.queryParamName]: null }
@@ -329,12 +350,20 @@ export const cleanSearchFromConflictingParams = (searchParams, filterConfigs, so
  * @param {Object} defaultFiltersConfig configuration for default built-in filters.
  * @param {Object} sortConfig config for sort search results feature
  * @param {boolean} isOriginInUse if origin is in use, return it too.
+ * @param {Object} pathParams Path params from specifically defined routes
+ *
  */
-export const pickSearchParamsOnly = (params, filterConfigs, sortConfig, isOriginInUse) => {
+export const pickSearchParamsOnly = (
+  params,
+  filterConfigs,
+  sortConfig,
+  isOriginInUse,
+  pathParams
+) => {
   const { address, origin, bounds, ...rest } = params || {};
   const boundsMaybe = bounds ? { bounds } : {};
   const originMaybe = isOriginInUse && origin ? { origin } : {};
-  const filterParams = validFilterParams(rest, filterConfigs);
+  const filterParams = validFilterParams(rest, filterConfigs, pathParams);
   const sort = rest[sortConfig.queryParamName];
   const sortMaybe = sort ? { sort } : {};
 
@@ -368,7 +397,8 @@ export const searchParamsPicker = (
   searchParamsInProps,
   filterConfigs,
   sortConfig,
-  isOriginInUse
+  isOriginInUse,
+  pathParams
 ) => {
   const { mapSearch, page, ...searchParamsInURL } = parse(searchFromLocation, {
     latlng: ['origin'],
@@ -380,14 +410,16 @@ export const searchParamsPicker = (
     searchParamsInProps,
     filterConfigs,
     sortConfig,
-    isOriginInUse
+    isOriginInUse,
+    pathParams
   );
   // Pick only search params that are part of current search configuration
   const queryParamsFromURL = pickSearchParamsOnly(
     searchParamsInURL,
     filterConfigs,
     sortConfig,
-    isOriginInUse
+    isOriginInUse,
+    pathParams
   );
 
   // Page transition might initially use values from previous search
@@ -422,6 +454,7 @@ export const pickListingFieldFilters = params => {
         ...listingTypeParamMaybe,
       })
     : {};
+
   const currentCategories = Object.values(validNestedCategoryParamNames);
   const currentListingType = Object.values(validListingTypeParamNames);
   const pickedFields = listingFields.reduce((picked, fieldConfig) => {
@@ -445,7 +478,7 @@ export const groupListingFieldConfigs = (configs, activeListingTypes) =>
       const isIndexed = filterConfig?.indexForSearch === true;
       const isActiveListingTypes =
         !listingTypeConfig.limitToListingTypeIds ||
-        listingTypeConfig.listingTypeIds.every(lt => activeListingTypes.includes(lt));
+        listingTypeConfig.listingTypeIds.some(lt => activeListingTypes.includes(lt));
       const isPrimary = filterConfig?.group === 'primary';
       return isActiveListingTypes && isIndexed && isPrimary
         ? [[...primary, config], secondary]
