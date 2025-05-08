@@ -57,6 +57,7 @@ import EditListingWizardTab, {
   LOCATION,
   AVAILABILITY,
   PHOTOS,
+  EXTRA_FEATURES,
 } from './EditListingWizardTab';
 import css from './EditListingWizard.module.css';
 import { CLEAR_CURRENT_USER } from '../../../ducks/user.duck';
@@ -68,8 +69,8 @@ import { CLEAR_CURRENT_USER } from '../../../ducks/user.duck';
 // Note 3: The first tab creates a draft listing and title is mandatory attribute for it.
 //         Details tab asks for "title" and is therefore the first tab in the wizard flow.
 const TABS_DETAILS_ONLY = [DETAILS];
-const TABS_PRODUCT = [DETAILS, PRICING_AND_STOCK, DELIVERY, PHOTOS];
-const TABS_BOOKING = [DETAILS, LOCATION, PRICING, AVAILABILITY, PHOTOS];
+const TABS_PRODUCT = [DETAILS, PRICING_AND_STOCK, DELIVERY, EXTRA_FEATURES, PHOTOS];
+const TABS_BOOKING = [DETAILS, LOCATION, PRICING, AVAILABILITY, EXTRA_FEATURES, PHOTOS];
 const TABS_INQUIRY = [DETAILS, LOCATION, PRICING, PHOTOS];
 const TABS_ALL = [...TABS_PRODUCT, ...TABS_BOOKING, ...TABS_INQUIRY];
 
@@ -86,6 +87,7 @@ const getTabs = (processTabs, disallowedTabs) => {
     : processTabs;
 };
 // Pick only allowed booking tabs (location could be omitted)
+//If displayLocation() returns false, it adds LOCATION to the list of tabs to exclude.
 const tabsForBookingProcess = (processTabs, listingTypeConfig) => {
   const disallowedTabs = !displayLocation(listingTypeConfig) ? [LOCATION] : [];
   return getTabs(processTabs, disallowedTabs);
@@ -97,11 +99,13 @@ const tabsForPurchaseProcess = (processTabs, listingTypeConfig) => {
   const disallowedTabs = isDeliveryDisabled ? [DELIVERY] : [];
   return getTabs(processTabs, disallowedTabs);
 };
-// Pick only allowed inquiry tabs (location and pricing could be omitted)
+// Pick only allowed inquiry tabs (location and pricing could be omitt
+// ed)
 const tabsForInquiryProcess = (processTabs, listingTypeConfig) => {
   const locationMaybe = !displayLocation(listingTypeConfig) ? [LOCATION] : [];
   const priceMaybe = !displayPrice(listingTypeConfig) ? [PRICING] : [];
-  return getTabs(processTabs, [...locationMaybe, ...priceMaybe]);
+  const disallowedTabs = [...locationMaybe , ...priceMaybe]
+  return getTabs(processTabs, disallowedTabs);
 };
 
 /**
@@ -113,6 +117,8 @@ const tabsForInquiryProcess = (processTabs, listingTypeConfig) => {
  * @param {string} processName
  */
 const tabLabelAndSubmit = (intl, tab, isNewListingFlow, isPriceDisabled, processName) => {
+  // console.log("processName" , processName);
+  
   const processNameString = isNewListingFlow ? `${processName}.` : '';
   const newOrEdit = isNewListingFlow ? 'new' : 'edit';
 
@@ -142,6 +148,9 @@ const tabLabelAndSubmit = (intl, tab, isNewListingFlow, isPriceDisabled, process
   } else if (tab === PHOTOS) {
     labelKey = 'EditListingWizard.tabLabelPhotos';
     submitButtonKey = `EditListingWizard.${processNameString}${newOrEdit}.savePhotos`;
+  } else if (tab === EXTRA_FEATURES) {
+    labelKey = 'EditListingWizard.tabLabelExtraFeatures';
+    submitButtonKey = `EditListingWizard.${processNameString}${newOrEdit}.saveExtraFeatures`;
   }
 
   return {
@@ -157,13 +166,14 @@ const tabLabelAndSubmit = (intl, tab, isNewListingFlow, isPriceDisabled, process
  * @param {Object} publicData
  * @param {Object} privateData
  */
+//NEED TO U THIS
 const hasValidListingFieldsInExtendedData = (publicData, privateData, config) => {
-  console.log("config" , config);
-  
+  console.log('config', config);
+
   const isValidField = (fieldConfig, fieldData) => {
     const { key, schemaType, enumOptions = [], saveConfig = {} } = fieldConfig;
-    console.log("fieldData" , fieldData);
-    
+    console.log('fieldData', fieldData);
+
     const schemaOptionKeys = enumOptions.map(o => `${o.option}`);
 
     const hasValidEnumValue = optionData => {
@@ -178,7 +188,6 @@ const hasValidListingFieldsInExtendedData = (publicData, privateData, config) =>
     const categoriesObj = pickCategoryFields(publicData, categoryKey, 1, categoryOptions);
     const currentCategories = Object.values(categoriesObj);
     // console.log("categoriesObj" , categoriesObj);
-    
 
     const isTargetListingType = isFieldForListingType(publicData?.listingType, fieldConfig);
     const isTargetCategory = isFieldForCategory(currentCategories, fieldConfig);
@@ -253,6 +262,8 @@ const tabCompleted = (tab, listing, config) => {
       return !!availabilityPlan;
     case PHOTOS:
       return images && images.length > 0;
+    case EXTRA_FEATURES:
+      return true;
     default:
       return false;
   }
@@ -498,15 +509,14 @@ class EditListingWizard extends Component {
     const savedProcessAlias = currentListing.attributes?.publicData?.transactionProcessAlias;
     const transactionProcessAlias =
       savedProcessAlias || this.state.selectedListingType?.transactionProcessAlias;
-      console.log("currentListing",currentListing);
-      
+    console.log('currentListing', currentListing);
 
     // NOTE: If the listing has invalid configuration in place,
     // the listing is considered deprecated and we don't allow user to modify the listing anymore.
     // Instead, operator should do that through Console or Integration API.
     const validListingTypes = config.listing.listingTypes;
-    console.log("validListingTypes" , validListingTypes);
-    
+    console.log('validListingTypes', validListingTypes);
+
     const listingTypeConfig = getListingTypeConfig(
       currentListing,
       this.state.selectedListingType,
