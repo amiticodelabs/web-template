@@ -422,6 +422,19 @@ const EditListingDetailsForm = props => (
             />
           )}
 
+          <FieldTextInput
+            id={`${formId}title`}
+            name="newTest"
+            className={css.title}
+            type="text"
+            label="newTest"
+            placeholder={intl.formatMessage({
+              id: 'EditListingDetailsForm.titlePlaceholder',
+            })}
+            maxLength={TITLE_MAX_LENGTH}
+            validate={composeValidators(required(titleRequiredMessage), maxLength60Message)}
+            autoFocus={autoFocus}
+          />
           {showDescription && isCompatibleCurrency && (
             <FieldTextInput
               id={`${formId}description`}

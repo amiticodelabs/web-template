@@ -59,6 +59,7 @@ import EditListingWizardTab, {
   PHOTOS,
 } from './EditListingWizardTab';
 import css from './EditListingWizard.module.css';
+import { CLEAR_CURRENT_USER } from '../../../ducks/user.duck';
 
 // You can reorder these panels.
 // Note 1: You need to change save button translations for new listing flow
@@ -157,10 +158,14 @@ const tabLabelAndSubmit = (intl, tab, isNewListingFlow, isPriceDisabled, process
  * @param {Object} privateData
  */
 const hasValidListingFieldsInExtendedData = (publicData, privateData, config) => {
+  console.log("config" , config);
+  
   const isValidField = (fieldConfig, fieldData) => {
     const { key, schemaType, enumOptions = [], saveConfig = {} } = fieldConfig;
-
+    console.log("fieldData" , fieldData);
+    
     const schemaOptionKeys = enumOptions.map(o => `${o.option}`);
+
     const hasValidEnumValue = optionData => {
       return schemaOptionKeys.includes(optionData);
     };
@@ -172,6 +177,8 @@ const hasValidListingFieldsInExtendedData = (publicData, privateData, config) =>
     const categoryOptions = config.categoryConfiguration.categories;
     const categoriesObj = pickCategoryFields(publicData, categoryKey, 1, categoryOptions);
     const currentCategories = Object.values(categoriesObj);
+    // console.log("categoriesObj" , categoriesObj);
+    
 
     const isTargetListingType = isFieldForListingType(publicData?.listingType, fieldConfig);
     const isTargetCategory = isFieldForCategory(currentCategories, fieldConfig);

@@ -159,6 +159,11 @@ export const EditListingPageComponent = props => {
     updateStripeAccountError,
   } = props;
 
+  console.log('page' , page);
+  console.log('currentUser' , currentUser);
+  // console.log('currentListing' , currentListing);
+  
+
   const { id, type, returnURLType } = params;
   const isNewURI = type === LISTING_PAGE_PARAM_TYPE_NEW;
   const isDraftURI = type === LISTING_PAGE_PARAM_TYPE_DRAFT;

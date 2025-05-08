@@ -53,8 +53,10 @@ export const isFieldFor = (entityTypeKey, entityType, fieldConfig) => {
 
 export const isFieldForUserType = (userType, fieldConfig) =>
   isFieldFor('userType', userType, fieldConfig);
+
 export const isFieldForListingType = (listingType, fieldConfig) =>
   isFieldFor('listingType', listingType, fieldConfig);
+
 export const isFieldForCategory = (categories, fieldConfig) =>
   isFieldFor('category', categories, fieldConfig);
 
