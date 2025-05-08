@@ -138,7 +138,7 @@ export const EditListingPageComponent = props => {
     getAccountLinkError,
     getAccountLinkInProgress,
     history,
-    onFetchExceptions,
+    onFetchExceptions, 
     onAddAvailabilityException,
     onDeleteAvailabilityException,
     onCreateListingDraft,
@@ -159,8 +159,8 @@ export const EditListingPageComponent = props => {
     updateStripeAccountError,
   } = props;
 
-  console.log('page' , page);
-  console.log('currentUser' , currentUser);
+  console.log('params' , params);
+  // console.log('currentUser' , currentUser);
   // console.log('currentListing' , currentListing);
   
 

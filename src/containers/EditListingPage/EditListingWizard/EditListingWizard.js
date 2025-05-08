@@ -498,11 +498,15 @@ class EditListingWizard extends Component {
     const savedProcessAlias = currentListing.attributes?.publicData?.transactionProcessAlias;
     const transactionProcessAlias =
       savedProcessAlias || this.state.selectedListingType?.transactionProcessAlias;
+      console.log("currentListing",currentListing);
+      
 
     // NOTE: If the listing has invalid configuration in place,
     // the listing is considered deprecated and we don't allow user to modify the listing anymore.
     // Instead, operator should do that through Console or Integration API.
     const validListingTypes = config.listing.listingTypes;
+    console.log("validListingTypes" , validListingTypes);
+    
     const listingTypeConfig = getListingTypeConfig(
       currentListing,
       this.state.selectedListingType,
