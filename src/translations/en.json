@@ -358,6 +358,7 @@
   "EditListingWizard.default-purchase.new.saveDelivery": "Next",
   "EditListingWizard.default-purchase.new.saveExtraFeatures": "Next",
   "EditListingWizard.default-purchase.new.saveDetails": "Next",
+  "EditListingWizard.default-purchase.new.saveLocation" : "Next",
   "EditListingWizard.default-purchase.new.savePhotos": "Publish listing",
   "EditListingWizard.default-purchase.new.savePricingAndStock": "Next",
   "EditListingWizard.edit.saveAvailability": "Save changes",

@@ -69,7 +69,7 @@ import { CLEAR_CURRENT_USER } from '../../../ducks/user.duck';
 // Note 3: The first tab creates a draft listing and title is mandatory attribute for it.
 //         Details tab asks for "title" and is therefore the first tab in the wizard flow.
 const TABS_DETAILS_ONLY = [DETAILS];
-const TABS_PRODUCT = [DETAILS, PRICING_AND_STOCK, DELIVERY, EXTRA_FEATURES, PHOTOS];
+const TABS_PRODUCT = [DETAILS, PRICING_AND_STOCK, LOCATION, DELIVERY, EXTRA_FEATURES, PHOTOS];
 const TABS_BOOKING = [DETAILS, LOCATION, PRICING, AVAILABILITY, EXTRA_FEATURES, PHOTOS];
 const TABS_INQUIRY = [DETAILS, LOCATION, PRICING, PHOTOS];
 const TABS_ALL = [...TABS_PRODUCT, ...TABS_BOOKING, ...TABS_INQUIRY];
@@ -104,7 +104,7 @@ const tabsForPurchaseProcess = (processTabs, listingTypeConfig) => {
 const tabsForInquiryProcess = (processTabs, listingTypeConfig) => {
   const locationMaybe = !displayLocation(listingTypeConfig) ? [LOCATION] : [];
   const priceMaybe = !displayPrice(listingTypeConfig) ? [PRICING] : [];
-  const disallowedTabs = [...locationMaybe , ...priceMaybe]
+  const disallowedTabs = [...locationMaybe, ...priceMaybe];
   return getTabs(processTabs, disallowedTabs);
 };
 
@@ -118,7 +118,7 @@ const tabsForInquiryProcess = (processTabs, listingTypeConfig) => {
  */
 const tabLabelAndSubmit = (intl, tab, isNewListingFlow, isPriceDisabled, processName) => {
   // console.log("processName" , processName);
-  
+
   const processNameString = isNewListingFlow ? `${processName}.` : '';
   const newOrEdit = isNewListingFlow ? 'new' : 'edit';
 
@@ -257,7 +257,7 @@ const tabCompleted = (tab, listing, config) => {
     case DELIVERY:
       return !!deliveryOptionPicked;
     case LOCATION:
-      return !!(geolocation && publicData?.location?.address);
+      return !!(geolocation && privateData?.location?.address);
     case AVAILABILITY:
       return !!availabilityPlan;
     case PHOTOS:
@@ -515,7 +515,7 @@ class EditListingWizard extends Component {
     // the listing is considered deprecated and we don't allow user to modify the listing anymore.
     // Instead, operator should do that through Console or Integration API.
     const validListingTypes = config.listing.listingTypes;
-    console.log('validListingTypes', validListingTypes);
+    // console.log('validListingTypes', validListingTypes);
 
     const listingTypeConfig = getListingTypeConfig(
       currentListing,
@@ -548,6 +548,8 @@ class EditListingWizard extends Component {
         : isPurchaseProcess(processName)
         ? tabsForPurchaseProcess(TABS_PRODUCT, listingTypeConfig)
         : tabsForInquiryProcess(TABS_INQUIRY, listingTypeConfig);
+        console.log("tabs" , tabs);
+        
 
     // Check if wizard tab is active / linkable.
     // When creating a new listing, we don't allow users to access next tab until the current one is completed.
@@ -570,6 +572,8 @@ class EditListingWizard extends Component {
       console.log(
         `You tried to access an EditListingWizard tab (${selectedTab}), which was not yet activated.`
       );
+      console.log("nearestActiveTab" , nearestActiveTab);
+      
       return <NamedRedirect name="EditListingPage" params={{ ...params, tab: nearestActiveTab }} />;
     }
 
@@ -602,6 +606,8 @@ class EditListingWizard extends Component {
 
     const rootURL = config.marketplaceRootURL;
     const { returnURLType, ...pathParams } = params;
+    console.log("pathParams" , pathParams);
+    
     const successURL = createReturnURL(
       STRIPE_ONBOARDING_RETURN_URL_SUCCESS,
       rootURL,

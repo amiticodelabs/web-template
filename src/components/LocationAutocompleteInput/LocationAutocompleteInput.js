@@ -5,7 +5,8 @@ import { ValidationError } from '../../components';
 
 // LocationAutocompleteInputImpl is a big component that includes code for both Mapbox and Google Maps
 // It is loaded dynamically - i.e. it is splitted to its own code chunk.
-const LocationAutocompleteInputImpl = loadable(() =>
+const 
+LocationAutocompleteInputImpl = loadable(() =>
   import(/* webpackChunkName: "LocationAutocompleteInputImpl" */ './LocationAutocompleteInputImpl')
 );
 

@@ -32,6 +32,8 @@ const EditListingExtraFeaturesForm = props => (
         pristine,
         saveActionMsg,
         updated,
+        autoFocus,
+        unitType,
         updateInProgress,
       } = formRenderProps;
 

@@ -14,12 +14,12 @@ import css from './EditListingLocationPanel.module.css';
 
 const getInitialValues = props => {
   const { listing } = props;
-  const { geolocation, publicData } = listing?.attributes || {};
+  const { geolocation, privateData } = listing?.attributes || {};
 
   // Only render current search if full place object is available in the URL params
   // TODO bounds are missing - those need to be queried directly from Google Places
-  const locationFieldsPresent = publicData?.location?.address && geolocation;
-  const location = publicData?.location || {};
+  const locationFieldsPresent = privateData?.location?.address && geolocation;
+  const location = privateData?.location || {};
   const { address, building } = location;
 
   return {
@@ -97,7 +97,7 @@ const EditListingLocationPanel = props => {
           // New values for listing attributes
           const updateValues = {
             geolocation: origin,
-            publicData: {
+            privateData: {
               location: { address, building },
             },
           };

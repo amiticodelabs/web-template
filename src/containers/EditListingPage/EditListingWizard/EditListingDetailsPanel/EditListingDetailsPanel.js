@@ -283,7 +283,7 @@ const EditListingDetailsPanel = props => {
     config,
   } = props;
 
-  console.log("config" , config);
+  // console.log("config" , config);
   
   const classes = classNames(rootClassName || css.root, className);
   const { publicData, state } = listing?.attributes || {};

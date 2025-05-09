@@ -18,7 +18,7 @@ import { Button, Form, AspectRatioWrapper } from '../../../../components';
 // Import modules from this directory
 import ListingImage from './ListingImage';
 import css from './EditListingPhotosForm.module.css';
-
+//pop
 const ACCEPT_IMAGES = 'image/*';
 
 const ImageUploadError = props => {
@@ -61,12 +61,12 @@ export const FieldAddImage = props => {
         const { accept, input, label, disabled: fieldDisabled } = fieldprops;
         const { name, type } = input;
         const onChange = e => {
-          const file = e.target.files[0];
+          const file = e.target.files;
           formApi.change(`addImage`, file);
           formApi.blur(`addImage`);
           onImageUploadHandler(file);
         };
-        const inputProps = { accept, id: name, name, onChange, type };
+        const inputProps = { accept, id: name, name, onChange, type , multiple: true};
         return (
           <div className={css.addImageWrapper}>
             <AspectRatioWrapper width={aspectWidth} height={aspectHeight}>
@@ -83,6 +83,7 @@ export const FieldAddImage = props => {
 };
 
 // Component that shows listing images from "images" field array
+//A wrapper for displaying a single image in the form using the ListingImage component.
 const FieldListingImage = props => {
   const { name, intl, onRemoveImage, aspectWidth, aspectHeight, variantPrefix } = props;
   return (
@@ -135,22 +136,31 @@ const FieldListingImage = props => {
  * @param {string} props.listingImageConfig.variantPrefix - The variant prefix
  * @returns {JSX.Element}
  */
+//MAIN 
 export const EditListingPhotosForm = props => {
   const [state, setState] = useState({ imageUploadRequested: false });
   const [submittedImages, setSubmittedImages] = useState([]);
 
-  const onImageUploadHandler = file => {
+  const onImageUploadHandler = files => {
+    const fileArray = Array.from(files)
     const { listingImageConfig, onImageUpload } = props;
-    if (file) {
+    if (fileArray.length) {
       setState({ imageUploadRequested: true });
 
+    const uploads = fileArray.map(file =>
       onImageUpload({ id: `${file.name}_${Date.now()}`, file }, listingImageConfig)
-        .then(() => {
-          setState({ imageUploadRequested: false });
-        })
-        .catch(() => {
-          setState({ imageUploadRequested: false });
-        });
+    );
+
+      // onImageUpload({ id: `${file.name}_${Date.now()}`, file }, listingImageConfig)
+      //   .then(() => {
+      //     setState({ imageUploadRequested: false });
+      //   })
+        // .catch(() => {
+        //   setState({ imageUploadRequested: false });
+        // });
+        Promise.all(uploads)
+        .then(() => setState({ imageUploadRequested: false }))
+        .catch(() => setState({ imageUploadRequested: false }));
     }
   };
   const intl = useIntl();
