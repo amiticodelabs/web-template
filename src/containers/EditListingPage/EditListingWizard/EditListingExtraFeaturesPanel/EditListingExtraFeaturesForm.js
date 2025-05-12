@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Field, Form as FinalForm } from 'react-final-form';
 import arrayMutators from 'final-form-arrays';
 import classNames from 'classnames';
+import FieldArrayTry from "../../FieldArrayTry"
 
 // Import util modules
 import { FormattedMessage, useIntl } from '../../../../util/reactIntl';
@@ -44,6 +45,7 @@ const EditListingExtraFeaturesForm = props => (
       const submitDisabled = invalid || disabled || submitInProgress;
 
       return (
+        <>
         <Form onSubmit={handleSubmit} className={classes}>
           <FieldTextInput
             id={`${formId}.extrafeature`}
@@ -58,6 +60,7 @@ const EditListingExtraFeaturesForm = props => (
               id: 'EditListingExtraFeaturesForm.priceInputPlaceholder',
             })}
           />
+          
           <Button
             className={css.submitButton}
             type="submit"
@@ -67,7 +70,10 @@ const EditListingExtraFeaturesForm = props => (
           >
             {saveActionMsg}
           </Button>
+          
         </Form>
+        <FieldArrayTry/>
+        </>
       );
     }}
   />

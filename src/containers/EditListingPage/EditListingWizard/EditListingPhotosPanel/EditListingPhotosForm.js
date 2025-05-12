@@ -142,6 +142,7 @@ export const EditListingPhotosForm = props => {
   const [submittedImages, setSubmittedImages] = useState([]);
 
   const onImageUploadHandler = files => {
+    //Taking multiple files at a time
     const fileArray = Array.from(files)
     const { listingImageConfig, onImageUpload } = props;
     if (fileArray.length) {
@@ -151,17 +152,18 @@ export const EditListingPhotosForm = props => {
       onImageUpload({ id: `${file.name}_${Date.now()}`, file }, listingImageConfig)
     );
 
-      // onImageUpload({ id: `${file.name}_${Date.now()}`, file }, listingImageConfig)
-      //   .then(() => {
-      //     setState({ imageUploadRequested: false });
-      //   })
-        // .catch(() => {
-        //   setState({ imageUploadRequested: false });
-        // });
-        Promise.all(uploads)
-        .then(() => setState({ imageUploadRequested: false }))
-        .catch(() => setState({ imageUploadRequested: false }));
-    }
+    Promise.all(uploads)
+    .then(() => setState({ imageUploadRequested: false }))
+    .catch(() => setState({ imageUploadRequested: false }));
+  }
+  //Taking one file at a time
+  // onImageUpload({ id: `${file.name}_${Date.now()}`, file }, listingImageConfig)
+  //   .then(() => {
+  //     setState({ imageUploadRequested: false });
+  //   })
+    // .catch(() => {
+    //   setState({ imageUploadRequested: false });
+    // });
   };
   const intl = useIntl();
 
