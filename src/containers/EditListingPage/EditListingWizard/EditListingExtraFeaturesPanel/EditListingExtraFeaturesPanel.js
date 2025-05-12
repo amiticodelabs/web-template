@@ -80,36 +80,7 @@ const initialValuesForListingFields = (
     return fields;
   }, {});
 };
-const pickListingFieldsData = (
-  data,
-  targetScope,
-  targetListingType,
-  targetCategories,
-  listingFieldConfigs
-) => {
-  const targetCategoryIds = Object.values(targetCategories);
 
-  return listingFieldConfigs.reduce((fields, fieldConfig) => {
-    const { key, scope = 'public', schemaType } = fieldConfig || {};
-    const namespacePrefix = scope === 'public' ? `pub_` : `priv_`;
-    const namespacedKey = `${namespacePrefix}${key}`;
-
-    const isKnownSchemaType = EXTENDED_DATA_SCHEMA_TYPES.includes(schemaType);
-    const isTargetScope = scope === targetScope;
-    const isTargetListingType = isFieldForListingType(targetListingType, fieldConfig);
-    const isTargetCategory = isFieldForCategory(targetCategoryIds, fieldConfig);
-
-    if (isKnownSchemaType && isTargetScope && isTargetListingType && isTargetCategory) {
-      const fieldValue = data[namespacedKey] != null ? data[namespacedKey] : null;
-      return { ...fields, [key]: fieldValue };
-    } else if (isKnownSchemaType && isTargetScope) {
-      // Note: this clears extra custom fields
-      // These might exists if provider swaps between listing types before saving the draft listing.
-      return { ...fields, [key]: null };
-    }
-    return fields;
-  }, {});
-};
 const getInitialValues = (
   props,
   existingListingTypeInfo,
@@ -119,7 +90,7 @@ const getInitialValues = (
   categoryKey
 ) => {
   const { description, title, publicData, privateData } = props?.listing?.attributes || {};
-  const { listingType , extrafeature } = publicData;
+  const { listingType, extrafeature } = publicData;
 
   const nestedCategories = pickCategoryFields(publicData, categoryKey, 1, listingCategories);
   // Initial values for the form
@@ -127,7 +98,7 @@ const getInitialValues = (
     title,
     description,
     extrafeature,
-    
+
     ...nestedCategories,
     // Transaction type info: listingType, transactionProcessAlias, unitType
     ...getTransactionInfo(listingTypes, existingListingTypeInfo),
@@ -147,27 +118,6 @@ const getInitialValues = (
     ),
   };
 };
-const setNoAvailabilityForUnbookableListings = processAlias => {
-  return isBookingProcessAlias(processAlias)
-    ? {}
-    : {
-        availabilityPlan: {
-          type: 'availability-plan/time',
-          timezone: 'Etc/UTC',
-          entries: [
-            // Note: "no entries" is the same as seats=0 for every entry.
-            // { dayOfWeek: 'mon', startTime: '00:00', endTime: '00:00', seats: 0 },
-            // { dayOfWeek: 'tue', startTime: '00:00', endTime: '00:00', seats: 0 },
-            // { dayOfWeek: 'wed', startTime: '00:00', endTime: '00:00', seats: 0 },
-            // { dayOfWeek: 'thu', startTime: '00:00', endTime: '00:00', seats: 0 },
-            // { dayOfWeek: 'fri', startTime: '00:00', endTime: '00:00', seats: 0 },
-            // { dayOfWeek: 'sat', startTime: '00:00', endTime: '00:00', seats: 0 },
-            // { dayOfWeek: 'sun', startTime: '00:00', endTime: '00:00', seats: 0 },
-          ],
-        },
-      };
-};
-
 
 const EditListingExtraFeaturesPanel = props => {
   const {
@@ -191,6 +141,7 @@ const EditListingExtraFeaturesPanel = props => {
   const listingFields = config.listing.listingFields;
   const listingCategories = config.categoryConfiguration.categories;
   const categoryKey = config.categoryConfiguration.key;
+  const currentTags = listing?.attributes?.publicData?.tags || []; //NEW
 
   const { hasExistingListingType, existingListingTypeInfo } = hasSetListingType(publicData);
   const hasValidExistingListingType =
@@ -206,7 +157,8 @@ const EditListingExtraFeaturesPanel = props => {
     listingTypes,
     listingFields,
     listingCategories,
-    categoryKey
+    categoryKey,
+    // tags
   );
 
   const noListingTypesSet = listingTypes?.length === 0;
@@ -231,28 +183,21 @@ const EditListingExtraFeaturesPanel = props => {
       {true ? (
         <EditListingExtraFeaturesForm
           className={css.form}
-          initialValues={initialValues}
+          initialValues={{
+            extrafeature: listing?.attributes?.publicData?.extrafeature || '',
+            tags: listing?.attributes?.publicData?.tags || [],
+          }}
+          
           saveActionMsg={submitButtonText}
           onSubmit={values => {
-            const {
-              title,
-              description,
-              listingType,
-              extrafeature,
-              transactionProcessAlias,
-              unitType,
-              ...rest
-            } = values;
+            const { extrafeature, tags, ...rest } = values;
+
 
             const updateValues = {
-              title: title.trim(),
-              description,
               publicData: {
-                listingType,
                 extrafeature,
-                transactionProcessAlias,
-                unitType,
-              }
+                tags,
+              },
             };
             onSubmit(updateValues);
           }}
@@ -263,7 +208,7 @@ const EditListingExtraFeaturesPanel = props => {
             pickCategoryFields(values, categoryKey, 1, listingCategories)
           }
           categoryPrefix={categoryKey}
-        //   onListingTypeChange={onListingTypeChange}
+          //   onListingTypeChange={onListingTypeChange}
           listingFieldsConfig={listingFields}
           listingCurrency={listing?.attributes?.price?.currency}
           marketplaceCurrency={config.currency}
@@ -282,6 +227,7 @@ const EditListingExtraFeaturesPanel = props => {
           invalidExistingListingType={!hasValidExistingListingType}
         />
       )}
+      {/* <EditTagListForm initialValues={{ tags: currentTags }} onSubmit={handleSubmit} {...rest} /> */}
     </div>
   );
 };
