@@ -25,6 +25,10 @@ import css from './ProductOrderForm.module.css';
 // Note: input element could allow ordering bigger quantities
 const MAX_QUANTITY_FOR_DROPDOWN = 100;
 
+//This handleFetchLineItems function is a utility typically used to
+//  fetch updated transaction line items (like price breakdown, stock validation, etc.) based on user input.
+// it conditionally calls onFetchTransactionLineItems to get updated pricing and availability data for a listing
+//When a user changes the quantity, delivery method, or interacts with the order form, the system recalculates pricing and validates stock before moving to checkout.
 const handleFetchLineItems = ({
   quantity,
   deliveryMethod,
@@ -34,14 +38,14 @@ const handleFetchLineItems = ({
   fetchLineItemsInProgress,
   onFetchTransactionLineItems,
 }) => {
-  const stockReservationQuantity = Number.parseInt(quantity, 10);
-  const deliveryMethodMaybe = deliveryMethod ? { deliveryMethod } : {};
+  const stockReservationQuantity = Number.parseInt(quantity, 10);  //Convert the quantity from string to number.
+  const deliveryMethodMaybe = deliveryMethod ? { deliveryMethod } : {}; //Prepare an optional deliveryMethod object if it exists.
   const isBrowser = typeof window !== 'undefined';
   if (
     isBrowser &&
     stockReservationQuantity &&
-    (!displayDeliveryMethod || deliveryMethod) &&
-    !fetchLineItemsInProgress
+    (!displayDeliveryMethod || deliveryMethod) && //Delivery method is either not required or has been selected
+    !fetchLineItemsInProgress //We are not already fetching line items
   ) {
     onFetchTransactionLineItems({
       orderData: { stockReservationQuantity, ...deliveryMethodMaybe },
@@ -152,6 +156,7 @@ const renderForm = formRenderProps => {
       });
     }
   }, []);
+
 
   // If form values change, update line-items for the order breakdown
   const handleOnChange = formValues => {

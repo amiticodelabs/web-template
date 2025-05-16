@@ -81,11 +81,14 @@ export class SearchPageComponent extends Component {
       isSecondaryFiltersOpen: false,
     };
 
+    //Without debouncing, the onMapMoveEnd function could be called many times in quick succession while a user drags or zooms the map
+    //This line means: “Make a new version of onMapMoveEnd that’s debounced and always uses the correct this context.”
     this.onMapMoveEnd = debounce(this.onMapMoveEnd.bind(this), SEARCH_WITH_MAP_DEBOUNCE);
     this.onOpenMobileModal = this.onOpenMobileModal.bind(this);
     this.onCloseMobileModal = this.onCloseMobileModal.bind(this);
 
     // Filter functions
+    //We are binding methods to the class instance.
     this.applyFilters = this.applyFilters.bind(this);
     this.cancelFilters = this.cancelFilters.bind(this);
     this.resetAll = this.resetAll.bind(this);
@@ -99,12 +102,18 @@ export class SearchPageComponent extends Component {
   // when map is moved by user or viewport has changed
   onMapMoveEnd(viewportBoundsChanged, data) {
     const { viewportBounds, viewportCenter } = data;
-    const { listingType: listingTypePathParam } = this.props.params || {};
+    //viewportBounds: new map bounding box.
+    //viewportCenter: center point of the map.
 
+    const { listingType: listingTypePathParam } = this.props.params || {}; //Grabs the listingType from the URL path if present (e.g. /s/cars).
+
+    //Figures out the correct search page route (/s, /s/:listingType) depending on whether a listingType param exists.
     const routes = this.props.routeConfiguration;
     const searchPagePath = listingTypePathParam
       ? pathByRouteName('SearchPageWithListingType', routes, { listingType: listingTypePathParam })
       : pathByRouteName('SearchPage', routes);
+
+    //Confirms that the current page is actually the SearchPage, since the map could be used on other pages.
     const currentPath =
       typeof window !== 'undefined' && window.location && window.location.pathname;
 
@@ -115,7 +124,13 @@ export class SearchPageComponent extends Component {
     // or original location search is rendered once,
     // we start to react to "mapmoveend" events by generating new searches
     // (i.e. 'moveend' event in Mapbox and 'bounds_changed' in Google Maps)
+
+    //Only proceed if:
+    // The map bounds actually changed
+    // You're on the correct SearchPage route
     if (viewportBoundsChanged && isSearchPage) {
+      //These config values help validate and clean up the filters and search params.
+      // For example, defaultFiltersConfig holds all the filter definitions from config.js.
       const { history, location, config } = this.props;
       const { listingFields: listingFieldsConfig } = config?.listing || {};
       const { defaultFilters: defaultFiltersConfig } = config?.search || {};
@@ -129,14 +144,21 @@ export class SearchPageComponent extends Component {
       };
 
       // parse query parameters, including a custom attribute named category
+      // Extracts the current search query params from the URL.
+      // rest includes all other filters (price, category, etc.)
+
       const { address, bounds, mapSearch, ...rest } = parse(location.search, {
         latlng: ['origin'],
         latlngBounds: ['bounds'],
       });
 
+      //If origin is enabled (location-based search), add the new map center as origin.
       const originMaybe = isOriginInUse(this.props.config) ? { origin: viewportCenter } : {};
       const dropNonFilterParams = false;
 
+      //Build a new search query:
+      // With new bounds Retaining existing filters (price, category, etc.)
+      // Ensuring only valid filters are included
       const searchParams = {
         address,
         ...originMaybe,
@@ -145,7 +167,13 @@ export class SearchPageComponent extends Component {
         ...validFilterParams(rest, filterConfigs, dropNonFilterParams),
       };
 
+      //getSearchPageResourceLocatorStringParams is a helper function used to extract routing details
+      // from the current page (location) and the app's route configuration (routes). It returns:
+      // routeName: The name of the current route (e.g., 'SearchPage' or 'SearchPageWithListingType')
+      // pathParams: Dynamic route parameters needed to construct the full URL (like listingType, slug, etc.)
       const { routeName, pathParams } = getSearchPageResourceLocatorStringParams(routes, location);
+      //Pushes the new URL with updated map bounds and filters using history.push(...).
+      // This triggers loadData() again and re-runs the search with updated parameters.
 
       history.push(createResourceLocatorString(routeName, routes, pathParams, searchParams));
     }
@@ -180,6 +208,14 @@ export class SearchPageComponent extends Component {
     };
 
     const urlQueryParams = validUrlQueryParamsFromProps(this.props);
+    console.log('urlQueryParams', urlQueryParams);
+
+    //this.state.currentQueryParams:
+    // These are the locally selected filters in the UI — may not be applied yet. For example, a user selects "Pet-friendly" but hasn’t hit “Apply” — the state holds this.
+
+    //urlQueryParams:
+    // These are the current filters from the URL — i.e., what the user sees in the address bar.Generated by validUrlQueryParamsFromProps(this.props) (usually location.search parsed).
+    //as this.state.currentQueryParams is spreading after urlQueryParams it will override any conflicting values
     const searchParams = { ...urlQueryParams, ...this.state.currentQueryParams };
     const search = cleanSearchFromConflictingParams(searchParams, filterConfigs, sortConfig);
 
@@ -187,6 +223,7 @@ export class SearchPageComponent extends Component {
       routeConfiguration,
       location
     );
+
 
     history.push(createResourceLocatorString(routeName, routeConfiguration, pathParams, search));
   }
@@ -321,6 +358,9 @@ export class SearchPageComponent extends Component {
       config,
       params = {},
     } = this.props;
+    console.log('location', location);
+    console.log('config', config);
+    console.log('params', params);
 
     // If the search page variant is of type /s/:listingType, this defines the :listingType
     // path parameter used to filter the whole page.

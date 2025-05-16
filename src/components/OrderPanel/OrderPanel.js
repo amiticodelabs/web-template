@@ -266,6 +266,7 @@ const OrderPanel = props => {
   const intl = useIntl();
   const location = useLocation();
   const history = useHistory();
+  
 
   useEffect(() => {
     setMounted(true);
@@ -297,6 +298,9 @@ const OrderPanel = props => {
     fetchLineItemsError,
     payoutDetailsWarning,
   } = props;
+
+  // console.log("location" , location);
+  // return;
 
   const publicData = listing?.attributes?.publicData || {};
   const { listingType, unitType, transactionProcessAlias = '', priceVariants, startTimeInterval } =
@@ -515,6 +519,7 @@ const OrderPanel = props => {
           </p>
         ) : null}
       </ModalInMobile>
+      
       <div className={css.openOrderForm}>
         <PriceMaybe
           price={price}

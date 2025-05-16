@@ -211,6 +211,12 @@ export const stringify = params => {
  *
  * @return {Object} key/value pairs parsed from the given String
  */
+
+//queryString.parse() → Converts ?a=1&b=2 to { a: '1', b: '2' }
+// decodeLatLng("40.75,-73.95") → { lat: 40.75, lng: -73.95 }
+// decodeLatLngBounds(...) → { ne: {...}, sw: {...} }
+// parseFloatNum("50") → 50 (else returns null if NaN)
+
 export const parse = (search, options = {}) => {
   const { latlng = [], latlngBounds = [] } = options;
   const params = queryString.parse(search);

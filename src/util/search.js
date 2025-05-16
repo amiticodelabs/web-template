@@ -22,8 +22,8 @@ export const parseSelectFilterOptions = uriComponentValue => {
  * @param {String} scope Scope extracted from listingExtendData config.
  */
 export const constructQueryParamName = (key, scope) => {
-  const prefixedKey = scope === 'meta' ? `meta_${key}` : `pub_${key}`;
-  return prefixedKey.replace(/\s/g, '_');
+  const prefixedKey = scope === 'meta' ? `meta_${key}` : `pub_${key}`; // scope can be public , private , meta , protected / but only meta and public fields can be used for filtering
+  return prefixedKey.replace(/\s/g, '_'); // replacing all spaces in the string prefixedKey with underscores (_).
 };
 
 /**

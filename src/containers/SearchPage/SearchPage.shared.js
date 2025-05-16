@@ -19,9 +19,16 @@ import { isFieldForCategory, isFieldForListingType } from '../../util/fieldHelpe
 
 const validURLParamForCategoryData = (prefix, categories, level, params) => {
   const levelKey = constructQueryParamName(`${prefix}${level}`, 'public');
-  const levelValue = params?.[levelKey];
-  const foundCategory = categories.find(cat => cat.id === params?.[levelKey]);
-  const subcategories = foundCategory?.subcategories || [];
+  //Constructs a URL param name, like:
+  // prefix = "category"
+  // level = 1
+  // levelKey = pub_category1
+  const levelValue = params?.[levelKey]; //Gets the actual value from the URL params.
+  const foundCategory = categories.find(cat => cat.id === params?.[levelKey]); //Finds if the selected value is valid (i.e., exists in the current list of categories).
+  const subcategories = foundCategory?.subcategories || []; //If the selected category is valid, grab its children.
+
+  //If valid category AND it has subcategories:
+  // Add this level’s key-value pair and Recursively validate the next level
   return foundCategory && subcategories.length > 0
     ? {
         [levelKey]: levelValue,
@@ -174,19 +181,24 @@ export const validFilterParams = (params, filterConfigs, dropNonFilterParams = t
   const listingFieldFiltersConfig = listingFieldsConfig.filter(
     config => config.filterConfig?.indexForSearch
   );
-  const listingFieldParamNames = listingFieldFiltersConfig.map(f =>
-    constructQueryParamName(f.key, f.scope)
+  //If indexForSearch: true → the field is: Sent to the backend and indexed in Algolia. Available as a filter on the search page. Included in the validFilterParams() processing.
+  // If indexForSearch: false or missing → the field: Won’t be searchable or usable as a filter. Can still exist as metadata on a listing, but won’t affect search.
+
+  const listingFieldParamNames = listingFieldFiltersConfig.map(
+    f => constructQueryParamName(f.key, f.scope)
+    //eg : pub_brand (scope : public , key : brand)
   );
-  // Note: builtInFilterParamNames might include categoryLevel,
-  //       even though it isn't a paramname that's used with nested category tree.
-  //       (pub_categoryLevel1, pub_categoryLevel2, and pub_categoryLevel3 are used instead.)
+  // Note: builtInFilterParamNames might include categoryLevel (that may have sub category),
+  //  even though it isn't a paramname that's used with nested category tree.
+  // (pub_categoryLevel1, pub_categoryLevel2, and pub_categoryLevel3 are used instead.)
   const builtInFilterParamNames = defaultFiltersConfig.map(f => {
     return f.schemaType === 'category' ? `pub_${f.key}` : f.key;
   });
+  // When we don’t use pub_: This is for built-in filter keys or fields that are not stored in publicData (dates/price)
+
   const filterParamNames = [...listingFieldParamNames, ...builtInFilterParamNames];
 
-  // Note: currently, we only support nested enums with a single default filter
-  //       that has schema type: "category"
+  // Note: currently, we only support nested enums with a single default filter that has schema type: "category"
   const categorySearchConfig = defaultFiltersConfig.find(f => f.schemaType === 'category');
   const validNestedCategoryParamNames = categorySearchConfig
     ? validURLParamForCategoryData(categorySearchConfig.key, listingCategories, 1, params)

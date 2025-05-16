@@ -4,27 +4,26 @@ import { compile } from 'path-to-regexp';
 // NOTE: This file imports urlHelpers.js, which may lead to circular dependency
 import { stringify } from './urlHelpers';
 
+//It searches through the list of route configurations and returns the route object that matches the given name.
 const findRouteByName = (nameToFind, routes) => find(routes, route => route.name === nameToFind);
 
-/**
- * E.g. ```const toListingPath = toPathByRouteName('ListingPage', routes);```
- * Then we can generate listing paths with given params (```toListingPath({ id: uuidX })```)
- */
+//toPathByRouteName is a function that looks up a route path generator function using the route name,and returns a function that can generate the full URL path when given paramstoPathByRouteName('SearchPage', routes)({ address: 'New York' });   will return something like /s?address=New%20York
+
 const toPathByRouteName = (nameToFind, routes) => {
   const route = findRouteByName(nameToFind, routes);
   if (!route) {
     throw new Error(`Path "${nameToFind}" was not found.`);
   }
   return compile(route.path);
+  //compile comes from the path-to-regexp library and returns a function that accepts an object of parameters and returns a string path
 };
 
-/**
- * Shorthand for single path call. (```pathByRouteName('ListingPage', routes, { id: uuidX });```)
- */
+//utility used in Sharetribe's web template (Flex Template for Web) to generate route paths dynamically based on route names and parameters.
 export const pathByRouteName = (nameToFind, routes, params = {}) => {
   const hasEmptySlug = params && params.hasOwnProperty('slug') && params.slug === '';
   const pathParams = hasEmptySlug ? { ...params, slug: 'no-slug' } : params;
   return toPathByRouteName(nameToFind, routes)(pathParams);
+  //This syntax is called function currying, or more simply, returning a function from another function and calling it immediately.
 };
 
 /**

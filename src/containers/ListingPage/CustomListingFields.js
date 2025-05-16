@@ -25,14 +25,20 @@ import SectionYoutubeVideoMaybe from './SectionYoutubeVideoMaybe';
 const CustomListingFields = props => {
   const { publicData, metadata, listingFieldConfigs, categoryConfiguration } = props;
 
+  // This determines which categories are selected in the listing (e.g., “Cars → SUVs”), so the form only shows relevant fields.
   const { key: categoryPrefix, categories: listingCategoriesConfig } = categoryConfiguration;
   const categoriesObj = pickCategoryFields(publicData, categoryPrefix, 1, listingCategoriesConfig);
   const currentCategories = Object.values(categoriesObj);
 
+  //Each field config is checked to see if it should be shown for the current category.
   const isFieldForSelectedCategories = fieldConfig => {
     const isTargetCategory = isFieldForCategory(currentCategories, fieldConfig);
     return isTargetCategory;
   };
+
+  //This utility function:
+// Filters fields that match the selected categories
+// Picks out the data needed to render them (schema type, value, label, etc.)
   const propsForCustomFields =
     pickCustomFieldProps(
       publicData,
@@ -45,6 +51,7 @@ const CustomListingFields = props => {
   return (
     <>
       <SectionDetailsMaybe {...props} isFieldForCategory={isFieldForSelectedCategories} />
+      {/* Based on the schema type (multi-enum, text, YouTube), it renders the correct UI component for that field. */}
       {propsForCustomFields.map(customFieldProps => {
         const { schemaType, key, ...fieldProps } = customFieldProps;
         return schemaType === SCHEMA_TYPE_MULTI_ENUM ? (

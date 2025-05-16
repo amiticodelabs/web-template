@@ -90,6 +90,9 @@ const MIN_LENGTH_FOR_LONG_WORDS_IN_TITLE = 16;
 const { UUID } = sdkTypes;
 
 export const ListingPageComponent = props => {
+  console.log("props" , props);
+  
+  //is enquiry modal on or off
   const [inquiryModalOpen, setInquiryModalOpen] = useState(
     props.inquiryModalOpenForListingId === props.params.id
   );
@@ -129,6 +132,7 @@ export const ListingPageComponent = props => {
   const isVariant = rawParams.variant != null;
   const isPendingApprovalVariant = rawParams.variant === LISTING_PAGE_PENDING_APPROVAL_VARIANT;
   const isDraftVariant = rawParams.variant === LISTING_PAGE_DRAFT_VARIANT;
+
   const currentListing =
     isPendingApprovalVariant || isDraftVariant || showOwnListingsOnly
       ? ensureOwnListing(getOwnListing(listingId))
@@ -265,10 +269,12 @@ export const ListingPageComponent = props => {
 
   const facebookImages = listingImages(currentListing, 'facebook');
   const twitterImages = listingImages(currentListing, 'twitter');
+
   const schemaImages = listingImages(
     currentListing,
     `${config.layout.listingImage.variantPrefix}-2x`
   ).map(img => img.url);
+  
   const marketplaceName = config.marketplaceName;
   const schemaTitle = intl.formatMessage(
     { id: 'ListingPage.schemaTitle' },
@@ -311,6 +317,8 @@ export const ListingPageComponent = props => {
     >
       <LayoutSingleColumn className={css.pageRoot} topbar={topbar} footer={<FooterContainer />}>
         <div className={css.contentWrapperForProductLayout}>
+          
+          {/*Main column */}
           <div className={css.mainColumnForProductLayout}>
             {mounted && currentListing.id && noPayoutDetailsSetWithOwnListing ? (
               <ActionBarMaybe
@@ -375,6 +383,8 @@ export const ListingPageComponent = props => {
               onManageDisableScrolling={onManageDisableScrolling}
             />
           </div>
+
+      {/* order column */}
           <div className={css.orderColumnForProductLayout}>
             <OrderPanel
               className={css.productOrderPanel}
@@ -389,6 +399,7 @@ export const ListingPageComponent = props => {
                   to={{ hash: '#author' }}
                 >
                   {authorDisplayName}
+                  {/* Amit JOshi */}
                 </NamedLink>
               }
               title={<FormattedMessage id="ListingPage.orderTitle" values={{ title: richTitle }} />}
