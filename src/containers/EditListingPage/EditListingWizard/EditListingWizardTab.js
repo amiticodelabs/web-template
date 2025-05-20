@@ -31,13 +31,13 @@ export const EXTRA_FEATURES = 'extra-features';
 
 // EditListingWizardTab component supports these tabs
 export const SUPPORTED_TABS = [
-  DETAILS,
-  PRICING,
-  PRICING_AND_STOCK,
-  DELIVERY,
-  LOCATION,
-  AVAILABILITY,
-  PHOTOS,
+  // DETAILS,
+  // PRICING,
+  // PRICING_AND_STOCK,
+  // DELIVERY,
+  // LOCATION,
+  // AVAILABILITY,
+  // PHOTOS,
   EXTRA_FEATURES,
 ];
 

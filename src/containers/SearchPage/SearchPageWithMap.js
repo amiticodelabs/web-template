@@ -208,7 +208,7 @@ export class SearchPageComponent extends Component {
     };
 
     const urlQueryParams = validUrlQueryParamsFromProps(this.props);
-    console.log('urlQueryParams', urlQueryParams);
+    // console.log('urlQueryParams', urlQueryParams);
 
     //this.state.currentQueryParams:
     // These are the locally selected filters in the UI — may not be applied yet. For example, a user selects "Pet-friendly" but hasn’t hit “Apply” — the state holds this.
@@ -219,12 +219,13 @@ export class SearchPageComponent extends Component {
     const searchParams = { ...urlQueryParams, ...this.state.currentQueryParams };
     const search = cleanSearchFromConflictingParams(searchParams, filterConfigs, sortConfig);
 
+    //getSearchPageResourceLocatorStringParams helps extract routing parameters needed to construct a URL for the SearchPage.
+    // It's usually used in situations like when a user applies filters or moves the map on the search page.
     const { routeName, pathParams } = getSearchPageResourceLocatorStringParams(
       routeConfiguration,
       location
     );
-
-
+    //These are then used to construct or update a URL using createResourceLocatorString
     history.push(createResourceLocatorString(routeName, routeConfiguration, pathParams, search));
   }
 
@@ -246,6 +247,7 @@ export class SearchPageComponent extends Component {
     this.setState({ currentQueryParams: {} });
 
     // Reset routing params
+    //omit(obj, keysArray) is a utility (usually from Lodash or custom) that takes an object and returns a new object without the specified keys.
     const queryParams = omit(urlQueryParams, filterQueryParamNames);
 
     const { routeName, pathParams } = getSearchPageResourceLocatorStringParams(
@@ -273,9 +275,12 @@ export class SearchPageComponent extends Component {
       listingTypePathParam,
     };
 
+    //Get current query params and filter configs
     const urlQueryParams = validUrlQueryParamsFromProps(this.props);
-
+    //It(getHandleChangedValueFn) returns a function that receives updatedURLParams — which is an object containing filter values the user just changed
+    //This is the main function that gets used when a filter is changed.
     return updatedURLParams => {
+      //It updates the state with the new filter values and then optionally updates the URL via history.push
       const updater = prevState => {
         const { address, bounds, keywords } = urlQueryParams;
         const mergedQueryParams = { ...urlQueryParams, ...prevState.currentQueryParams };
@@ -289,6 +294,7 @@ export class SearchPageComponent extends Component {
         const datesAndSeatsMaybe = getDatesAndSeatsMaybe(mergedQueryParams, updatedURLParams);
 
         return {
+          //it calls omitLimitedListingFieldParams to clean out category-limited values (nested enum logic)
           currentQueryParams: omitLimitedListingFieldParams(
             {
               ...mergedQueryParams,
@@ -304,6 +310,9 @@ export class SearchPageComponent extends Component {
       };
 
       const callback = () => {
+        //If useHistoryPush is true:
+        // Clean the filters (e.g., remove duplicates, conflicts).Construct the proper route string using getSearchPageResourceLocatorStringParams.
+        // Push it to browser history (i.e., change the URL without reloading the page).
         if (useHistoryPush) {
           const searchParams = this.state.currentQueryParams;
           const search = cleanSearchFromConflictingParams(searchParams, filterConfigs, sortConfig);
@@ -339,6 +348,10 @@ export class SearchPageComponent extends Component {
     history.push(
       createResourceLocatorString(routeName, routeConfiguration, pathParams, queryParams)
     );
+    //If urlParam = 'sort' and values = 'createdAt', result is:
+    // → { ...urlQueryParams, sort: 'createdAt' }
+    // If user clears sort (e.g., resets it), values = null:
+    // → omit(urlQueryParams, 'sort') (remove sort from urlQueryParams)
   }
 
   render() {
@@ -361,6 +374,7 @@ export class SearchPageComponent extends Component {
     console.log('location', location);
     console.log('config', config);
     console.log('params', params);
+    console.log('listingFieldConfig', config.listing.listingFields);
 
     // If the search page variant is of type /s/:listingType, this defines the :listingType
     // path parameter used to filter the whole page.
@@ -370,9 +384,11 @@ export class SearchPageComponent extends Component {
     const { listingType: listingTypePathParam } = params;
 
     const { listingFields } = config?.listing || {};
+
     const { defaultFilters: defaultFiltersRaw, sortConfig } = config?.search || {};
 
     const { activeListingTypes } = getActiveListingTypes(config, listingTypePathParam);
+    //f listingType is already part of the URL path (like /rentals), don't show it as a filter again.
     const defaultFiltersConfig = listingTypePathParam
       ? defaultFiltersRaw.filter(f => f.key !== 'listingType')
       : defaultFiltersRaw;
@@ -409,10 +425,16 @@ export class SearchPageComponent extends Component {
 
     const isWindowDefined = typeof window !== 'undefined';
     const isMobileLayout = isWindowDefined && window.innerWidth < MODAL_BREAKPOINT;
+    //So the map is shown:
+    // Always on desktop (non-mobile)
+    // On mobile only when the modal is open (isSearchMapOpenOnMobile === true)
     const shouldShowSearchMap =
       !isMobileLayout || (isMobileLayout && this.state.isSearchMapOpenOnMobile);
 
     const isKeywordSearch = isMainSearchTypeKeywords(config);
+    //Built-in filters like category and listingType go in "primary" filter section.
+    // Other default filters are placed separately.
+    // Keywords filter is excluded if it's the main search type
     const builtInPrimaryFilters = defaultFiltersConfig.filter(f =>
       ['categoryLevel', 'listingType'].includes(f.key)
     );
@@ -425,11 +447,51 @@ export class SearchPageComponent extends Component {
       listingFieldsConfig,
       activeListingTypes
     );
+    const newFilter = {
+      key: 'mealType',
+      scope: 'public',
+      schemaType: 'enum',
+      enumOptions: [
+        {
+          option: 'vegetarian',
+          label: 'Vegetarian',
+        },
+        {
+          option: 'vegan',
+          label: 'Vegan',
+        },
+        {
+          option: 'meat',
+          label: 'Meat',
+        },
+      ],
+      filterConfig: {
+        indexForSearch: true,
+        label: 'Meal type',
+        filterType: 'SelectSingleFilter',
+        group: 'primary',
+      },
+      showConfig: {
+        label: ' Meal type',
+        isDetail: true,
+        unselectedOptions: true,
+      },
+      saveConfig: {
+        label: 'Meal type',
+        isRequired: false,
+      },
+      categoryConfig: {
+        limitToCategoryIds: false,
+      },
+    };
     const availablePrimaryFilters = [
       ...builtInPrimaryFilters,
       ...customPrimaryFilters,
       ...builtInFilters,
+      newFilter,
     ];
+    console.log('availablePrimaryFilters', availablePrimaryFilters);
+
     const availableFilters = [
       ...builtInPrimaryFilters,
       ...customPrimaryFilters,
@@ -442,6 +504,7 @@ export class SearchPageComponent extends Component {
     // Selected aka active filters
     const selectedFilters = validQueryParams;
     const keysOfSelectedFilters = Object.keys(selectedFilters);
+    //
     const selectedFiltersCountForMobile = isKeywordSearch
       ? keysOfSelectedFilters.filter(f => f !== 'keywords').length
       : keysOfSelectedFilters.length;
@@ -450,6 +513,9 @@ export class SearchPageComponent extends Component {
       (searchParamsInURL.dates != null && searchParamsInURL.dates === selectedFilters.dates);
 
     // Selected aka active secondary filters
+    //Manages whether the secondary filter panel is open.
+    // Also tracks selected secondary filters for UI indicators.
+
     const selectedSecondaryFilters = hasSecondaryFilters
       ? validFilterParams(validQueryParams, {
           listingFieldsConfig: customSecondaryFilters,

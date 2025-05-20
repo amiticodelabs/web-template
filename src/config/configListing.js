@@ -54,6 +54,28 @@
  */
 export const listingFields = [
   // {
+  //   key: 'mealType',
+  //   schemaType: 'enum',
+  //   scope: 'public',
+  //   includeForListingTypes: ['default'], // Use your actual listing type key
+  //   filterConfig: {
+  //     indexForSearch: true,
+  //     label: 'Meal type',
+  //     group: 'primary', // or 'secondary'
+  //     searchMode: 'has_any',
+  //     options: [
+  //       { key: 'vegetarian', label: 'Vegetarian' },
+  //       { key: 'vegan', label: 'Vegan' },
+  //       { key: 'meat', label: 'Meat' },
+  //     ],
+  //   },
+  //   showConfig: {
+  //     label: 'Meal type',
+  //     isDetail: true,
+  //     isLineItem: false,
+  //   },
+  // },
+  // {
   //   "scope": "public",
   //   "label": "Gears",
   //   "key": "gears",

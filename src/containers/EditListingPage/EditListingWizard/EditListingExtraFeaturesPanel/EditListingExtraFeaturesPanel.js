@@ -184,19 +184,21 @@ const EditListingExtraFeaturesPanel = props => {
         <EditListingExtraFeaturesForm
           className={css.form}
           initialValues={{
-            extrafeature: listing?.attributes?.publicData?.extrafeature || '',
-            tags: listing?.attributes?.publicData?.tags || [],
+            relatedRoles: listing?.attributes?.publicData?.relatedRoles || '',
+            Experience: listing?.attributes?.publicData?.Experience || '',
+            roleData: listing?.attributes?.publicData?.roleData || '',
           }}
           
           saveActionMsg={submitButtonText}
           onSubmit={values => {
-            const { extrafeature, tags, ...rest } = values;
+            const { relatedRoles, Experience, roleData } = values;
 
 
             const updateValues = {
               publicData: {
-                extrafeature,
-                tags,
+                relatedRoles,
+                Experience,
+                roleData
               },
             };
             onSubmit(updateValues);

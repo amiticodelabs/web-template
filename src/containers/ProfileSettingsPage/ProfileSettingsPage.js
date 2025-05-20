@@ -179,8 +179,8 @@ export const ProfileSettingsPageComponent = props => {
         location: {
           ...location,
           selectedPlace: {
-            ...location.selectedPlace,
-            origin: new LatLng(location.selectedPlace.origin.lat , location.selectedPlace.origin.lng)
+            ...location?.selectedPlace,
+            origin: new LatLng(location?.selectedPlace?.origin.lat , location?.selectedPlace?.origin.lng)
           }
         },
         ...displayNameMaybe,

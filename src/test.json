@@ -1,0 +1,38 @@
+{
+  "key": "mealType",
+  "scope": "public",
+  "schemaType": "enum",
+  "enumOptions": [
+    {
+      "label": "vegetarian",
+      "option": "1"
+    },
+    {
+      "label": "vegan",
+      "option": "2"
+    },
+    {
+      "label": "meat",
+      "option": "3"
+    }
+  ],
+  "filterConfig": {
+    "indexForSearch": true,
+    "label": "Meal type",
+    "filterType": "SelectSingleFilter",
+    "group": "primary"
+  },
+  "showConfig": {
+    "label": " Meal type",
+    "isDetail": true,
+    "unselectedOptions": true
+  },
+  "saveConfig": {
+    "label": "Meal type",
+    "isRequired": false
+  },
+  "categoryConfig": {
+    "limitToCategoryIds": false
+  }
+}
+
