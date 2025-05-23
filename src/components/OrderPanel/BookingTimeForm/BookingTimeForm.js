@@ -18,6 +18,7 @@ import css from './BookingTimeForm.module.css';
 // lineItems from this template's backend for the EstimatedTransactionMaybe
 // In case you add more fields to the form, make sure you add
 // the values here to the orderData object.
+
 const handleFetchLineItems = props => formValues => {
   const {
     listingId,
@@ -109,6 +110,7 @@ export const BookingTimeForm = props => {
   } = props;
 
   const [seatsOptions, setSeatsOptions] = useState([1]);
+  
   const initialValuesMaybe =
     priceVariants.length > 1 && preselectedPriceVariant
       ? { initialValues: { priceVariantName: preselectedPriceVariant?.name } }

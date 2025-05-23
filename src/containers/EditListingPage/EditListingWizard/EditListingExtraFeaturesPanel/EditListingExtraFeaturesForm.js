@@ -8,20 +8,44 @@ import { FieldArray } from 'react-final-form-arrays';
 // Import util modules
 import { FormattedMessage, useIntl } from '../../../../util/reactIntl';
 // Import shared components
-import { Form, Button, FieldTextInput, FieldCheckboxGroup } from '../../../../components';
+import {
+  Form,
+  Button,
+  FieldTextInput,
+  FieldCheckboxGroup,
+  FieldCurrencyInput,
+} from '../../../../components';
 import FieldMultiSelect from './FieldMultiSelect';
+import appSettings from '../../../../config/settings';
+import * as validators from '../../../../util/validators'
+import {types as sdkTypes} from '../../../../util/sdkLoader'
+import { formatMoney } from '../../../../util/currency';
 
 const SKILL_OPTIONS = {
-  'front-end': [{ value: 'react', label: 'React' }, { value: 'vue', label: 'Vue' }],
-  'back-end': [{ value: 'node', label: 'Node.js' }, { value: 'django', label: 'Django' }],
+  'front-end': [
+    { value: 'react', label: 'React' },
+    { value: 'vue', label: 'Vue' },
+  ],
+  'back-end': [
+    { value: 'node', label: 'Node.js' },
+    { value: 'django', label: 'Django' },
+  ],
   'full-stack': [{ value: 'typescript', label: 'TypeScript' }],
-  'java': [{ value: 'spring', label: 'Spring Boot' }, { value: 'hibernate', label: 'Hibernate' }],
+  java: [
+    { value: 'spring', label: 'Spring Boot' },
+    { value: 'hibernate', label: 'Hibernate' },
+  ],
+};
+
+const { Money } = sdkTypes;
+const getPriceValidators = (intl) => {
+  const priceRequiredMsg = intl.formatMessage({ id: 'EditListingPricingForm.priceRequired' });
+  return validators.required(priceRequiredMsg);
 };
 
 const EditListingExtraFeaturesForm = props => (
   <FinalForm
     {...props}
-    keepDirtyOnReinitialize={true}
     mutators={{ ...arrayMutators }}
     render={formRenderProps => {
       const {
@@ -40,6 +64,8 @@ const EditListingExtraFeaturesForm = props => (
         updateInProgress,
         form,
         values,
+        initialValues,
+        marketplaceCurrency,
       } = formRenderProps;
 
       const classes = classNames(rootClassName || css.root, className);
@@ -54,15 +80,20 @@ const EditListingExtraFeaturesForm = props => (
         { value: 'java', label: 'java' },
       ];
       const selectedRoles = values.relatedRoles || [];
-      const [expandedRoles, setExpandedRoles] = useState([]);
+      const expandedRoles = values.expandedRoles || [];
+
       const toggleRoleSection = role => {
-        setExpandedRoles(
-          prev =>
-            prev.includes(role)
-              ? prev.filter(r => r !== role) // collapse it
-              : [...prev, role] // expand it
-        );
+        const newExpanded = expandedRoles.includes(role)
+          ? expandedRoles.filter(r => r !== role)
+          : [...expandedRoles, role];
+
+        form.change('expandedRoles', newExpanded);
       };
+
+      const priceValidators = getPriceValidators(intl);
+      
+      // Check if the listing type requires price
+      const shouldShowPrice = values.listingType === 'your_listing_type_that_needs_price';
 
       return (
         <>
@@ -82,6 +113,7 @@ const EditListingExtraFeaturesForm = props => (
               options={roleOptions}
               placeholder="Select related roles..."
             />
+            <Field name="expandedRoles" component="input" type="hidden" />
 
             {selectedRoles.map(role => (
               <div key={role} className={css.roleSection}>
@@ -99,7 +131,6 @@ const EditListingExtraFeaturesForm = props => (
                       placeholder={`Select skills for ${role}`}
                     />
 
-                    {/* For each selected skill, show an experience input */}
                     {values.roleData &&
                       values.roleData[role] &&
                       values.roleData[role].skills &&
@@ -118,6 +149,18 @@ const EditListingExtraFeaturesForm = props => (
                 )}
               </div>
             ))}
+
+            {shouldShowPrice && marketplaceCurrency ? (
+              <FieldCurrencyInput
+                id={`${formId}.price`}
+                name="price"
+                className={css.input}
+                label="Price"
+                placeholder="Price"
+                currencyConfig={appSettings.getCurrencyFormatting(marketplaceCurrency)}
+                validate={priceValidators}
+              />
+            ) : null}
 
             <Button
               className={css.submitButton}

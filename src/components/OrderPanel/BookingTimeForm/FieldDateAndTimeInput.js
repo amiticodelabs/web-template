@@ -52,21 +52,23 @@ const getAvailableStartTimes = params => {
   if (timeSlotsOnSelectedDate.length === 0 || !timeSlotsOnSelectedDate[0] || !bookingStart) {
     return [];
   }
+  //getStartOf is a function that returns the start of a given date in a given time zone.
   const bookingStartDate = getStartOf(bookingStart, 'day', timeZone);
-
+  //This loop iterates through each available time slot (t) and accumulates available hours into allHours.
   const allHours = timeSlotsOnSelectedDate.reduce((availableHours, t) => {
+    //For Each Time Slot Extract Start and End
     const startDate = t.attributes.start;
     const endDate = t.attributes.end;
     const nextDate = getStartOf(bookingStartDate, 'day', timeZone, 1, 'days');
 
-    // If the start date is after timeslot start, use the start date.
-    // Otherwise use the timeslot start time.
+    // If the booking date is after the slot's start time, use the booking date as the limit.
+    // Otherwise, use the slot's original start.
     const startLimit = isDateSameOrAfter(bookingStartDate, startDate)
       ? bookingStartDate
       : startDate;
 
-    // If date next to selected start date is inside timeslot use the next date to get the hours of full day.
-    // Otherwise use the end of the timeslot.
+      // If the slot ends after the next day starts, we cap it at the start of the next day.
+      // Otherwise, use the actual end time of the slot.
     const endLimit = isDateSameOrAfter(endDate, nextDate) ? nextDate : endDate;
 
     const hours = getStartHours(startLimit, endLimit, timeZone, intl);

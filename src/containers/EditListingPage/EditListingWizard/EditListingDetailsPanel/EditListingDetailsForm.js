@@ -422,7 +422,7 @@ const EditListingDetailsForm = props => (
             />
           )}
 
-          <FieldTextInput
+          {/* <FieldTextInput
             id={`${formId}title`}
             name="newTest"
             className={css.title}
@@ -434,7 +434,8 @@ const EditListingDetailsForm = props => (
             maxLength={TITLE_MAX_LENGTH}
             validate={composeValidators(required(titleRequiredMessage), maxLength60Message)}
             autoFocus={autoFocus}
-          />
+          /> */}
+
           {showDescription && isCompatibleCurrency && (
             <FieldTextInput
               id={`${formId}description`}

@@ -273,8 +273,8 @@ const SignupFormComponent = props => (
             </PrimaryButton>
           </div>
 
-          <label htmlFor="location">Select location:</label>
-            <Field name="location" format={identity} component={LocationAutocompleteInput} />
+          {/* <label htmlFor="location">Select location:</label>
+            <Field name="location" format={identity} component={LocationAutocompleteInput} /> */}
             
         </Form>
       );

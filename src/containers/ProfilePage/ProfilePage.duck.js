@@ -214,6 +214,7 @@ export const loadData = (params, search, config) => (dispatch, getState, sdk) =>
     updateHasListings: false,
     updateNotifications: false,
   };
+console.log("userId" , userId);
 
   // Clear state so that previously loaded data is not visible
   // in case this page load fails.

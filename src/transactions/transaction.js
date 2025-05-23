@@ -31,6 +31,9 @@ export const INQUIRY_PROCESS_NAME = 'default-inquiry';
  * - isProviderReview(transition)
  * - statesNeedingCustomerAttention
  */
+
+// Process Configuration
+
 const PROCESSES = [
   {
     name: PURCHASE_PROCESS_NAME,
@@ -77,6 +80,12 @@ const statesObjectFromGraph = graph => graph.states || {};
  * @param {Object} process imported from a separate file
  * @returns {function} Returns a function to check the next state after given transition.
  */
+// This function is used to get the next state after a given transition.
+// It takes a process and a transition as arguments.
+// It first converts the process's graph into a states object.
+// Then it finds the state that has the transition in its on property.
+// If the transition is found, it returns the next state.
+// Otherwise, it returns null.
 const getStateAfterTransition = process => transition => {
   const statesObj = statesObjectFromGraph(process.graph);
   const stateNames = Object.keys(statesObj);
@@ -104,6 +113,12 @@ const getStateAfterTransition = process => transition => {
  * @returns {function} Returns a function to check the current state of transaction entity against
  * given process.
  */
+
+// This function is used to get the current state of a transaction entity.
+// It takes a process and a transaction as arguments.
+// It first gets the last transition of the transaction.
+// Then it uses the getStateAfterTransition function to get the next state after the last transition.
+// Finally, it returns the current state.
 const getProcessState = process => tx => {
   return getStateAfterTransition(process)(txLastTransition(tx));
 };
@@ -154,6 +169,11 @@ const pickTransitionsToTargetState = (transitionEntries, targetState, initialTra
  * @param {Object} process
  * @param {String} targetState
  */
+// This function is used to get the transitions that lead to a given state.
+// It takes a process and a target state as arguments.
+// It first converts the process's graph into a states object.
+// Then it finds the transitions that lead to the target state.
+// Finally, it returns the transitions.
 const getTransitionsToState = (process, targetState) => {
   const states = Object.values(statesObjectFromGraph(process.graph));
 
@@ -173,6 +193,12 @@ const getTransitionsToState = (process, targetState) => {
  * @param {Object} process against which transitions and states are checked.
  * @returns {function} Returns a function to get the transitions that lead to given states.
  */
+
+// This function is used to get the transitions that lead to given states.
+// It takes a process and a list of state names as arguments.
+// It first converts the process's graph into a states object.
+// Then it finds the transitions that lead to the given states.
+// Finally, it returns the transitions.
 const getTransitionsToStates = process => stateNames => {
   return stateNames.reduce((pickedTransitions, stateName) => {
     return [...pickedTransitions, ...getTransitionsToState(process, stateName)];
@@ -185,6 +211,12 @@ const getTransitionsToStates = process => stateNames => {
  *
  * @param {Object} process against which passed states are checked.
  */
+
+// This function is used to check if a transaction has passed a given state.
+// It takes a process and a state name as arguments.
+// It first gets the transitions that lead to the given state.
+// Then it checks if the transaction has passed any of those transitions.
+// Finally, it returns true if the transaction has passed the state, otherwise false.
 const hasPassedState = process => (stateName, tx) => {
   const txTransitions = tx => tx?.attributes?.transitions || [];
   const hasPassedTransition = (transitionName, tx) =>
@@ -204,6 +236,12 @@ const hasPassedState = process => (stateName, tx) => {
  *
  * @param {String} processName
  */
+
+// This function is used to resolve the latest process name.
+// It takes a process name as an argument.
+// It then checks if the process name is one of the supported processes.
+// If it is, it returns the latest process name.
+// Otherwise, it returns the process name itself.
 export const resolveLatestProcessName = processName => {
   switch (processName) {
     case 'flex-product-default-process':
@@ -226,6 +264,13 @@ export const resolveLatestProcessName = processName => {
  * Get process based on process name
  * @param {String} processName
  */
+
+// This function is used to get the process based on the process name.
+// It takes a process name as an argument.
+// It then resolves the latest process name.
+// Then it finds the process in the PROCESSES array.
+// If the process is found, it returns the process.
+// Otherwise, it throws an error.
 export const getProcess = processName => {
   const latestProcessName = resolveLatestProcessName(processName);
   const processInfo = PROCESSES.find(process => process.name === latestProcessName);
@@ -247,6 +292,11 @@ export const getProcess = processName => {
 /**
  * Get the info about supported processes: name, alias, unitTypes
  */
+
+// This function is used to get the info about supported processes.
+// It takes no arguments.
+// It then maps over the PROCESSES array.
+// It then returns the process info.
 export const getSupportedProcessesInfo = () =>
   PROCESSES.map(p => {
     const { process, ...rest } = p;
@@ -255,7 +305,12 @@ export const getSupportedProcessesInfo = () =>
 
 /**
  * Get all the transitions for every supported process
- */
+*/
+
+// This function is used to get all the transitions for every supported process.
+// It takes no arguments.
+// It then reduces the PROCESSES array.
+// It then returns the transitions.
 export const getAllTransitionsForEveryProcess = () => {
   return PROCESSES.reduce((accTransitions, processInfo) => {
     return [...accTransitions, ...Object.values(processInfo.process.transitions)];
@@ -267,6 +322,13 @@ export const getAllTransitionsForEveryProcess = () => {
  *
  * @param {String} processName
  */
+
+// This function is used to check if the process is purchase process.
+// It takes a process name as an argument.
+// It then resolves the latest process name.
+// Then it finds the process in the PROCESSES array.
+// If the process is found, it returns true if the process name is PURCHASE_PROCESS_NAME.
+// Otherwise, it returns false.
 export const isPurchaseProcess = processName => {
   const latestProcessName = resolveLatestProcessName(processName);
   const processInfo = PROCESSES.find(process => process.name === latestProcessName);
@@ -278,6 +340,13 @@ export const isPurchaseProcess = processName => {
  *
  * @param {String} processAlias
  */
+
+// This function is used to check if the process/alias points to a booking process.
+// It takes a process alias as an argument.
+// It then splits the process alias by the '/' character.
+// Then it checks if the process name is a purchase process.
+// If it is, it returns true.
+// Otherwise, it returns false.
 export const isPurchaseProcessAlias = processAlias => {
   const processName = processAlias ? processAlias.split('/')[0] : null;
   return processAlias ? isPurchaseProcess(processName) : false;
@@ -288,6 +357,13 @@ export const isPurchaseProcessAlias = processAlias => {
  *
  * @param {String} processName
  */
+
+// This function is used to check if the process is booking process.
+// It takes a process name as an argument.
+// It then resolves the latest process name.
+// Then it finds the process in the PROCESSES array.
+// If the process is found, it returns true if the process name is BOOKING_PROCESS_NAME.
+// Otherwise, it returns false.
 export const isBookingProcess = processName => {
   const latestProcessName = resolveLatestProcessName(processName);
   const processInfo = PROCESSES.find(process => process.name === latestProcessName);
@@ -299,6 +375,13 @@ export const isBookingProcess = processName => {
  *
  * @param {String} processAlias
  */
+
+// This function is used to check if the process/alias points to a booking process.
+// It takes a process alias as an argument.
+// It then splits the process alias by the '/' character.
+// Then it checks if the process name is a booking process.
+// If it is, it returns true.
+// Otherwise, it returns false.
 export const isBookingProcessAlias = processAlias => {
   const processName = processAlias ? processAlias.split('/')[0] : null;
   return processAlias ? isBookingProcess(processName) : false;
@@ -311,6 +394,12 @@ export const isBookingProcessAlias = processAlias => {
  *
  * @param {String} unitType
  */
+
+// This function is used to check if the unit type is a full day.
+// It takes a unit type as an argument.
+// It then checks if the unit type is one of the supported unit types.
+// If it is, it returns true.
+// Otherwise, it returns false.
 export const isFullDay = unitType => {
   return [DAY, NIGHT].includes(unitType);
 };
@@ -318,6 +407,11 @@ export const isFullDay = unitType => {
 /**
  * Get transitions that need provider's attention for every supported process
  */
+
+// This function is used to get the transitions that need provider's attention for every supported process.
+// It takes no arguments.
+// It then reduces the PROCESSES array.
+// It then returns the transitions.
 export const getTransitionsNeedingProviderAttention = () => {
   return PROCESSES.reduce((accTransitions, processInfo) => {
     const statesNeedingProviderAttention = Object.values(
@@ -362,6 +456,12 @@ export const TX_TRANSITION_ACTORS = [
  * @param {UUID} currentUserId UUID of the currentUser entity
  * @param {Object} transaction Transaction entity from Marketplace API
  */
+
+// This function is used to get the role of the current user on a given transaction entity.
+// It takes a current user ID and a transaction entity as arguments.
+// It then checks if the current user ID and transaction entity are valid.
+// If they are, it returns the role of the current user.
+// Otherwise, it throws an error.
 export const getUserTxRole = (currentUserId, transaction) => {
   const customer = transaction?.customer;
   if (currentUserId && currentUserId.uuid && transaction?.id && customer.id) {
@@ -378,6 +478,8 @@ export const getUserTxRole = (currentUserId, transaction) => {
 /**
  * Wildcard string for ConditionalResolver's conditions.
  */
+
+// This is a constant that is used to represent a wildcard in the ConditionalResolver.
 export const CONDITIONAL_RESOLVER_WILDCARD = '*';
 
 /**
@@ -396,6 +498,8 @@ export const CONDITIONAL_RESOLVER_WILDCARD = '*';
  *    })
  *    .resolve();
  */
+
+// This class helps to resolve correct UI data for each combination of conditional data [state & role]
 export class ConditionalResolver {
   constructor(data) {
     this.data = data;

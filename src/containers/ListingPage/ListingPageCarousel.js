@@ -90,7 +90,6 @@ const MIN_LENGTH_FOR_LONG_WORDS_IN_TITLE = 16;
 const { UUID } = sdkTypes;
 
 export const ListingPageComponent = props => {
-  console.log("props" , props);
   
   //is enquiry modal on or off
   const [inquiryModalOpen, setInquiryModalOpen] = useState(
@@ -126,6 +125,7 @@ export const ListingPageComponent = props => {
     showOwnListingsOnly,
     ...restOfProps
   } = props;
+  
 
   const listingConfig = config.listing;
   const listingId = new UUID(rawParams.id);
@@ -399,7 +399,6 @@ export const ListingPageComponent = props => {
                   to={{ hash: '#author' }}
                 >
                   {authorDisplayName}
-                  {/* Amit JOshi */}
                 </NamedLink>
               }
               title={<FormattedMessage id="ListingPage.orderTitle" values={{ title: richTitle }} />}

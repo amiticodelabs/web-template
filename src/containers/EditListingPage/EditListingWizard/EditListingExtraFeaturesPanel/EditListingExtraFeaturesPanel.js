@@ -16,6 +16,8 @@ import { H3, ListingLink } from '../../../../components';
 import { FormattedMessage } from '../../../../util/reactIntl';
 import { isBookingProcessAlias } from '../../../../transactions/transaction';
 import EditListingExtraFeaturesForm from './EditListingExtraFeaturesForm';
+import { types as sdkTypes } from '../../../../util/sdkLoader';
+const { Money } = sdkTypes;
 
 const hasSetListingType = publicData => {
   const { listingType, transactionProcessAlias, unitType } = publicData;
@@ -157,7 +159,7 @@ const EditListingExtraFeaturesPanel = props => {
     listingTypes,
     listingFields,
     listingCategories,
-    categoryKey,
+    categoryKey
     // tags
   );
 
@@ -180,55 +182,51 @@ const EditListingExtraFeaturesPanel = props => {
           />
         )}
       </H3>
-      {true ? (
-        <EditListingExtraFeaturesForm
-          className={css.form}
-          initialValues={{
-            relatedRoles: listing?.attributes?.publicData?.relatedRoles || '',
-            Experience: listing?.attributes?.publicData?.Experience || '',
-            roleData: listing?.attributes?.publicData?.roleData || '',
-          }}
-          
-          saveActionMsg={submitButtonText}
-          onSubmit={values => {
-            const { relatedRoles, Experience, roleData } = values;
+      <EditListingExtraFeaturesForm
+        className={css.form}
+        initialValues={{
+          relatedRoles: listing?.attributes?.publicData?.relatedRoles || '',
+          Experience: listing?.attributes?.publicData?.Experience || '',
+          roleData: listing?.attributes?.publicData?.roleData || '',
+          price: listing?.attributes?.publicData?.price1 
+            ? new Money(listing.attributes.publicData.price1.amount, listing.attributes.publicData.price1.currency)
+            : null
+        }}
+        saveActionMsg={submitButtonText}
+        onSubmit={values => {
+          const { relatedRoles, Experience, roleData, price } = values;
+          const price1 = price ? { amount: price.amount, currency: price.currency } : null;
 
+          const updateValues = {
+            publicData: {
+              relatedRoles,
+              Experience,
+              roleData,
+              price1
+            },
+          };
+          onSubmit(updateValues);
+        }}
+        selectableListingTypes={listingTypes.map(conf => getTransactionInfo([conf], {}, true))}
+        hasExistingListingType={hasExistingListingType}
+        selectableCategories={listingCategories}
+        pickSelectedCategories={values =>
+          pickCategoryFields(values, categoryKey, 1, listingCategories)
+        }
+        categoryPrefix={categoryKey}
+        //   onListingTypeChange={onListingTypeChange}
+        listingFieldsConfig={listingFields}
+        listingCurrency={listing?.attributes?.price?.currency}
+        marketplaceCurrency={config.currency}
+        marketplaceName={config.marketplaceName}
+        disabled={disabled}
+        ready={ready}
+        updated={panelUpdated}
+        updateInProgress={updateInProgress}
+        fetchErrors={errors}
+        autoFocus
+      />
 
-            const updateValues = {
-              publicData: {
-                relatedRoles,
-                Experience,
-                roleData
-              },
-            };
-            onSubmit(updateValues);
-          }}
-          selectableListingTypes={listingTypes.map(conf => getTransactionInfo([conf], {}, true))}
-          hasExistingListingType={hasExistingListingType}
-          selectableCategories={listingCategories}
-          pickSelectedCategories={values =>
-            pickCategoryFields(values, categoryKey, 1, listingCategories)
-          }
-          categoryPrefix={categoryKey}
-          //   onListingTypeChange={onListingTypeChange}
-          listingFieldsConfig={listingFields}
-          listingCurrency={listing?.attributes?.price?.currency}
-          marketplaceCurrency={config.currency}
-          marketplaceName={config.marketplaceName}
-          disabled={disabled}
-          ready={ready}
-          updated={panelUpdated}
-          updateInProgress={updateInProgress}
-          fetchErrors={errors}
-          autoFocus
-        />
-      ) : (
-        <ErrorMessage
-          marketplaceName={config.marketplaceName}
-          noListingTypesSet={noListingTypesSet}
-          invalidExistingListingType={!hasValidExistingListingType}
-        />
-      )}
       {/* <EditTagListForm initialValues={{ tags: currentTags }} onSubmit={handleSubmit} {...rest} /> */}
     </div>
   );

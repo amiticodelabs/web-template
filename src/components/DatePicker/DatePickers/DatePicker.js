@@ -1,3 +1,4 @@
+
 /**
  * This module is loosely based on wc-datepicker v0.5.3
  * https://github.com/Sqrrl/wc-datepicker
@@ -8,7 +9,7 @@
  * Copyright (c) 2022
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
+ * of this software and associated documentation files (the "Software" ), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
@@ -58,6 +59,7 @@ const CELL_WIDTH = 38;
 const SLIDE_WIDTH = CELL_WIDTH * 7;
 const OUTLINE_WIDTH = 2;
 
+//The CalendarMonth component renders a single month view in the calendar, including weekday headers and date cells.
 const CalendarMonth = props => {
   const {
     currentDate,
@@ -88,13 +90,15 @@ const CalendarMonth = props => {
   const isInsideOffsets = day => {
     const startOffset = startDateOffset ? startDateOffset(hoveredDate) : null;
     const endOffset = endDateOffset ? endDateOffset(hoveredDate) : null;
+    //isDateInRange checks if a given date is within a specified range.
     if (startOffset && endOffset) {
       return isDateInRange(day, { from: startOffset, to: endOffset });
     }
     return false;
   };
-
+  //handleKeyDown is a function that handles keyboard events for the calendar.
   const handleKeyDown = event => {
+    //It's set to true on the first keyboard interaction
     if (!keyboardUsed) {
       setKeyboardUsed(true);
     }
@@ -102,14 +106,12 @@ const CalendarMonth = props => {
       onKeyDown(event);
     }
   };
-
+  //onMouseEnter is a function that handles mouse enter events for the calendar.
   const onMouseEnter = event => {
     if (disabled) {
       return;
     }
-
     const date = getLocalDateFromISOString(event.target.closest('td').dataset.date);
-
     setHoveredDate(date);
   };
 
@@ -125,6 +127,7 @@ const CalendarMonth = props => {
       })}
     >
       <table className={css.calendarTable} onKeyDown={handleKeyDown} role="presentation">
+        {/* Weekday Headers */}
         <thead className={css.calendarHeader}>
           <tr className={css.weekdayRow} aria-hidden="true">
             {weekdays.map(weekday => (
@@ -141,6 +144,7 @@ const CalendarMonth = props => {
           </tr>
         </thead>
 
+        {/* Calendar Rows */}
         <tbody>
           {calendarRows.map(calendarRow => {
             const rowKey = `row-${calendarRow[0].getMonth()}-${calendarRow[0].getDate()}`;
@@ -148,9 +152,11 @@ const CalendarMonth = props => {
             return (
               <tr className={css.calendarRow} key={rowKey}>
                 {calendarRow.map(day => {
+                  //isCurrent checks if the current day is the same as the current month.
                   const isCurrent = isSameDay(day, currentMonth);
+                  //isOverflowing checks if the current day is in a different month than the current month.
                   const isOverflowing = day.getMonth() !== currentMonth.getMonth();
-
+                  //isSelected checks if the current day is selected.
                   const isSelected = Array.isArray(currentValue)
                     ? isSameDay(day, currentValue[0]) || isSameDay(day, currentValue[1])
                     : isSameDay(day, currentValue);
@@ -304,6 +310,7 @@ const DatePicker = props => {
   const [currentValue, setCurrentValue] = useState(value);
   const [calendarIndex, setCalendarIndex] = useState(0);
   const [allowSlide, setAllowSlide] = useState(true);
+  console.log("currentValue" , currentValue)
 
   useEffect(() => {
     if (!range && (isDate(value) || value == null) && value !== currentValue) {
@@ -356,7 +363,7 @@ const DatePicker = props => {
       }
     }
   };
-
+  //updateCurrentDate is a function that updates the current date.
   const updateCurrentDate = date => {
     const year = date.getFullYear();
 
@@ -364,7 +371,7 @@ const DatePicker = props => {
       return;
     }
 
-    // TODO Do we need month transition?
+    //monthChanged checks if the month or year of the date has changed.
     const monthChanged =
       date.getMonth() !== currentDate.getMonth() || year !== currentDate.getFullYear();
     if (monthChanged && onMonthChange) {
@@ -374,10 +381,12 @@ const DatePicker = props => {
     setCurrentDate(date);
   };
 
+//Range Selection Helpers:
   const hasStartAndEnd = value => value.length === 2;
   const hasMinimumNights = ({ start, end }) =>
     Math.abs(start?.getTime() - end?.getTime()) >= minimumNights * 864e5;
 
+  //Date Selection Handler:
   const onSelectDate = date => {
     if (isDayBlocked(date)) {
       return;

@@ -33,13 +33,14 @@ const truncated = s => {
 
 const ExpandableBio = props => {
   const [expand, setExpand] = useState(false);
-  const { className, bio } = props;
-  const bioWithLinks = richText(bio, {
+  const { className, bio = '' } = props;
+  // const safeBio = typeof bio === 'string' ? bio : '';
+  const bioWithLinks = richText(safeBio, {
     linkify: true,
     longWordMinLength: MIN_LENGTH_FOR_LONG_WORDS,
     longWordClass: css.longWord,
   });
-  const truncatedBio = richText(truncated(bio), {
+  const truncatedBio = richText(truncated(safeBio), {
     linkify: true,
     longWordMinLength: MIN_LENGTH_FOR_LONG_WORDS,
     longWordClass: css.longWord,
@@ -91,11 +92,13 @@ const UserCard = props => {
     ensuredUser.id && ensuredCurrentUser.id && ensuredUser.id.uuid === ensuredCurrentUser.id.uuid;
   const { displayName, bio } = ensuredUser.attributes.profile;
 
+ 
   const handleContactUserClick = () => {
     onContactUser(user);
   };
 
   const hasBio = !!bio;
+
   const classes = classNames(rootClassName || css.root, className);
   const linkClasses = classNames(css.links, {
     [css.withBioMissingAbove]: !hasBio,

@@ -98,6 +98,10 @@ export const states = {
  *       but this description format is following Xstate (FSM library)
  *       https://xstate.js.org/docs/
  */
+
+//The graph object  is like a map that
+//  shows all possible paths a booking can take. Let's break down its structure:
+
 export const graph = {
   // id is defined only to support Xstate format.
   // However if you have multiple transaction processes defined,
@@ -109,6 +113,10 @@ export const graph = {
 
   // States
   states: {
+    //When you're in the INITIAL state
+    // Two things can happen:
+    // Customer makes an inquiry (INQUIRE transition) → moves to INQUIRY state
+    // Customer tries to pay (REQUEST_PAYMENT transition) → moves to PENDING_PAYMENT state
     [states.INITIAL]: {
       on: {
         [transitions.INQUIRE]: states.INQUIRY,
