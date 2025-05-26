@@ -29,21 +29,37 @@ import css from './BookingDatesForm.module.css';
 
 const TODAY = new Date();
 
+//Purpose: Calculates the start of the next month
 const nextMonthFn = (currentMoment, timeZone, offset = 1) =>
   getStartOf(currentMoment, 'month', timeZone, offset, 'months');
+//Purpose: Calculates the start of the previous month
 const prevMonthFn = (currentMoment, timeZone, offset = 1) =>
   getStartOf(currentMoment, 'month', timeZone, -1 * offset, 'months');
+//Purpose: Calculates the last available date for booking
 const endOfRange = (date, dayCountAvailableForBooking, timeZone) =>
   getStartOf(date, 'day', timeZone, dayCountAvailableForBooking, 'days');
 
+// //Takes a month ID (like "2022-12") and converts it to the first moment of that month in the specified timezone
+// Example: "2022-12" → "2022-12-01T00:00:00" in the given timezone
+// Used for calendar navigation and time slot calculations
 const getMonthStartInTimeZone = (monthId, timeZone) => {
   const month = parseDateFromISO8601(`${monthId}-01`, timeZone); // E.g. new Date('2022-12')
   return getStartOf(month, 'month', timeZone, 0, 'months');
 };
+// //Gets the start of the next day after the given date
+// "Exclusive" means it's not including the end date
+// Example: If booking ends on "2023-05-15", this returns "2023-05-16T00:00:00"
+//Used when you need the exact end of a booking period
 
 const getExclusiveEndDate = (date, timeZone) => {
   return getStartOf(date, 'day', timeZone, 1, 'days');
 };
+
+//Gets the start of the previous day from the given date
+// "Inclusive" means it includes the end date in the range
+// Example: If booking ends on "2023-05-15", this returns "2023-05-14T00:00:00"
+// Used when you need to include the full last day in the booking
+
 const getInclusiveEndDate = (date, timeZone) => {
   return getStartOf(date, 'day', timeZone, -1, 'days');
 };
@@ -56,10 +72,20 @@ const getInclusiveEndDate = (date, timeZone) => {
  * @param {String} timeZone IANA time zone key ('Europe/Helsinki')
  * @returns {Array<Date>} a tuple containing dates: the start and exclusive end month
  */
+//
 const getMonthlyFetchRange = (monthlyTimeSlots, timeZone) => {
+  //Purpose: Extracts the month IDs from the monthlyTimeSlots object
+  //monthlyTimeSlots looks like this: { '2024-07': { timeSlots: [] }, '2024-08': { timeSlots: [] } }
+  //It reduces the object to an array of month IDs
+  //Example: { '2024-07': { timeSlots: [] }, '2024-08': { timeSlots: [] } } → ['2024-07', '2024-08']
+  //Used for calendar navigation and time slot calculations
   const monthStrings = Object.entries(monthlyTimeSlots).reduce((picked, entry) => {
     return Array.isArray(entry[1].timeSlots) ? [...picked, entry[0]] : picked;
   }, []);
+  //// Processing "2023-05"
+  // entry = ["2023-05", { timeSlots: [...], ... }]
+  // Array.isArray(entry[1].timeSlots) === true
+  // Result: ["2023-05"]
   const firstMonth = getMonthStartInTimeZone(monthStrings[0], timeZone);
   const lastMonth = getMonthStartInTimeZone(monthStrings[monthStrings.length - 1], timeZone);
   const exclusiveEndMonth = nextMonthFn(lastMonth, timeZone);
@@ -73,6 +99,11 @@ const getMonthlyFetchRange = (monthlyTimeSlots, timeZone) => {
  * @returns {Array<TimeSlot>} array of time slots where unnecessary boundaries have been removed.
  */
 const removeUnnecessaryBoundaries = timeSlots => {
+  //Purpose: Merges consecutive time slots with the same "seats" count
+  //timeSlots looks like this: [{ attributes: { start: Date, end: Date, seats: number } }, ...]
+  //It returns an array of time slots where unnecessary boundaries have been removed
+  //Example: [{ attributes: { start: Date, end: Date, seats: 2 } }, { attributes: { start: Date, end: Date, seats: 2 } }] → [{ attributes: { start: Date, end: Date, seats: 2 } }]
+  //Used for calendar navigation and time slot calculations
   return timeSlots.reduce((picked, ts) => {
     const hasPicked = picked.length > 0;
     if (hasPicked) {
@@ -114,20 +145,29 @@ const getAllTimeSlots = monthlyTimeSlots => {
  * @param {Moment} endDate end date (Moment)
  */
 const isBlockedBetween = (allTimeSlots, timeZone) => ([startDate, endDate]) => {
+  //Purpose: Checks if a blocked date can be found between two dates
+  //allTimeSlots looks like this: [{ attributes: { start: Date, end: Date, seats: number } }, ...]
+  //timeZone is the time zone id
+  //startDate and endDate are the dates to check
+  //It returns true if a blocked date can be found between the two dates, false otherwise
+  //Used for calendar navigation and time slot calculations
   const localizedStartDay = timeOfDayFromLocalToTimeZone(startDate, timeZone);
   const localizedEndDay = timeOfDayFromLocalToTimeZone(endDate, timeZone);
+  //Purpose: Finds a time slot that overlaps with the startDate
   const foundTS = allTimeSlots.find(ts => {
     const timeSlotRange = [ts.attributes.start, ts.attributes.end];
     return isInRange(localizedStartDay, ...timeSlotRange, undefined, timeZone);
   });
-
+  //Purpose: If no time slot is found, it returns true
   if (!foundTS) {
-    return true;
+    return true; //blocked
   }
 
   const timeSlotRange = [foundTS.attributes.start, foundTS.attributes.end];
   // endDate should be included in the slot mapped with startDate
+  // Check if end date is the same day as the time slot's end
   const isExcludedEnd = isSameDay(localizedEndDay, timeSlotRange[1], timeZone);
+  // Range is blocked if end date isn't in the same time slot and isn't the slot's end day
   const isBlockedBetween = !(isInRange(localizedEndDay, ...timeSlotRange) || isExcludedEnd);
   return isBlockedBetween;
 };
@@ -138,6 +178,17 @@ const isOneBoundaryeSelected = (hasTimeSlots, startDate, endDate) => {
 };
 
 const endDateToPickerDate = (unitType, endDate, timeZone) => {
+  //Purpose:
+  // Converts API end dates to dates that make sense in the date picker UI
+  // Handles the difference between exclusive and inclusive end dates
+  //Daily bookings need date adjustment
+  //// API end date: 2023-05-15T00:00:00 (exclusive)
+  // endDateToPickerDate(
+  //   'line-item/day',
+  //   new Date('2023-05-15T00:00:00'),
+  //   'UTC'
+  // )
+  // Returns: 2023-05-14T00:00:00 (inclusive - actual last day of stay)
   const isValid = endDate instanceof Date;
   const isDaily = unitType === LINE_ITEM_DAY;
 
@@ -164,12 +215,15 @@ const getBookableRange = (timeSlotData, startOfAvailableRange, endOfAvailableRan
   if (!timeSlotData) {
     return [];
   }
-
+  //Purpose: Gets the start and end of the time slot
   const timeSlotStart = timeSlotData?.timeSlots?.[0]?.attributes?.start;
   const timeSlotEnd = timeSlotData?.timeSlots?.[0]?.attributes?.end;
+  //Purpose: If the start of the available range is after the start of the time slot, use the start of the available range
+  //Otherwise, use the start of the time slot
   const start = isDateSameOrAfter(startOfAvailableRange, timeSlotStart)
     ? startOfAvailableRange
     : timeSlotStart;
+  //Purpose: If the end of the available range is after the end of the time slot, use the end of the time slot
   const end = isDateSameOrAfter(endOfAvailableRange, timeSlotEnd)
     ? timeSlotEnd
     : endOfAvailableRange;
@@ -189,11 +243,15 @@ const isOutsideRangeFn = (
   dayCountAvailableForBooking,
   timeZone
 ) => {
+  //Creates a function that determines if a given date should be disabled in the date picker
+  // Handles both daily and nightly bookings
+  // Considers multiple constraints (availability window, time slots, booking type)
   const endOfAvailableRange = dayCountAvailableForBooking;
   const endOfAvailableRangeDate = getStartOf(TODAY, 'day', timeZone, endOfAvailableRange, 'days');
+  //If dayCountAvailableForBooking is 90, then endOfAvailableRangeDate is 90 days from today
   const startOfAvailableRangeDate = getStartOf(TODAY, 'day', timeZone);
 
-  // Currently available monthly data
+  // Currently available monthly data (monthlyTimeSlots)
   const [startMonth, endMonth] = getMonthlyFetchRange(monthlyTimeSlots, timeZone);
   const timeSlotsData = timeSlotsPerDate(startMonth, endMonth, allTimeSlots, timeZone);
 
@@ -238,6 +296,7 @@ const isOutsideRangeFn = (
  */
 const isDayBlockedFn = params => {
   const { allTimeSlots, monthlyTimeSlots, isDaily, startDate, endDate, timeZone } = params || {};
+  //Determines if a specific day should be disabled in the calendar
 
   const [startMonth, endMonth] = getMonthlyFetchRange(monthlyTimeSlots, timeZone);
   const timeSlotsData = timeSlotsPerDate(startMonth, endMonth, allTimeSlots, timeZone);
@@ -269,10 +328,45 @@ const isDayBlockedFn = params => {
     }
 
     // Daily
-    return !hasAvailabilityOnDay;
+    return !hasAvailabilityOnDay; //block if no availability on day
+
+    //const isDayBlocked = isDayBlockedFn({
+    //   allTimeSlots: [{
+    //     attributes: {
+    //       start: '2023-05-01T00:00',
+    //       end: '2023-05-03T00:00'
+    //     }
+    //   }],
+    //   isDaily: true,
+    //   timeZone: 'UTC'
+    // });
+
+    // isDayBlocked(new Date('2023-05-01')); // false (available)
+    // isDayBlocked(new Date('2023-05-02')); // false (available)
+    // isDayBlocked(new Date('2023-05-04')); // true (blocked)
+
+    //Nightly booking
+    //const isDayBlocked = isDayBlockedFn({
+    //   allTimeSlots: [{
+    //     attributes: {
+    //       start: '2023-05-01T00:00',
+    //       end: '2023-05-03T00:00'
+    //     }
+    //   }],
+    //   isDaily: false,
+    //   startDate: new Date('2023-05-01'),
+    //   timeZone: 'UTC'
+    // });
+
+    // isDayBlocked(new Date('2023-05-01')); // false (can start here)
+    // isDayBlocked(new Date('2023-05-03')); // false (can end here)
+    // isDayBlocked(new Date('2023-05-04')); // true (blocked)
   };
 };
 
+////Fetches availability data for a specific month
+// Ensures we only fetch data within valid booking window
+// Optimizes API calls by fetching only necessary date ranges
 const fetchMonthData = (
   date,
   listingId,
@@ -281,10 +375,13 @@ const fetchMonthData = (
   onFetchTimeSlots
 ) => {
   const endOfRangeDate = endOfRange(TODAY, dayCountAvailableForBooking, timeZone);
+  //Calculates the furthest date in the future that can be booked
+  // Example: If dayCountAvailableForBooking = 90, it's 90 days from today
 
   // Don't fetch timeSlots for past months or too far in the future
   if (isInRange(date, TODAY, endOfRangeDate)) {
-    // Use "today", if the first day of given month is in the past
+    //If requesting a past month, starts from today
+    // If requesting a future month, starts from the first day of that month
     const start = isDateSameOrAfter(TODAY, date) ? TODAY : date;
 
     // Use endOfRangeDate, if the first day of the next month is too far in the future
@@ -295,6 +392,19 @@ const fetchMonthData = (
 
     // Fetch time slots for given time range
     onFetchTimeSlots(listingId, start, end, timeZone);
+
+    //// Today: May 15, 2023
+    // fetchMonthData(
+    //   new Date('2023-05-01'),  // May 1, 2023
+    //   'listing-123',
+    //   90,
+    //   'UTC',
+    //   onFetchTimeSlots
+    // );
+
+    // Will fetch:
+    // start: May 15, 2023 (today)
+    // end: June 1, 2023 (next month)
   }
 };
 
@@ -329,6 +439,39 @@ const handleMonthClick = (
       onFetchTimeSlots
     );
   }
+  // User is viewing June 2023
+  // handleMonthClick(
+  //   new Date('2023-06-01'),
+  //   monthlyTimeSlots,
+  //   90,
+  //   'UTC',
+  //   'listing-123',
+  //   onFetchTimeSlots
+  // )(nextMonthFn);
+
+  // Will prefetch: August 2023 (2 months ahead)
+  // Because: July is already loaded for next/prev navigation
+
+  // Current month (June) had a failed fetch
+  // const monthlyTimeSlots = {
+  //   '2023-06': {
+  //     fetchTimeSlotsError: true,
+  //     timeSlots: null
+  //   }
+  // };
+
+  // handleMonthClick(
+  //   new Date('2023-06-01'),
+  //   monthlyTimeSlots,
+  //   90,
+  //   'UTC',
+  //   'listing-123',
+  //   onFetchTimeSlots
+  // )(nextMonthFn);
+
+  // Will:
+  // 1. Retry fetching June data
+  // 2. Prefetch August data
 };
 
 // When the values of the form are updated we need to fetch

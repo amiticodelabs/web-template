@@ -109,7 +109,6 @@ export const SingleDatePicker = props => {
     }
   };
   const handleOnKeyDownOnInput = e => {
-    // Gather all escape presses to close menu
     if (e.key === 'Space' || e.key === 'Enter') {
       e.preventDefault();
       toggleOpen();

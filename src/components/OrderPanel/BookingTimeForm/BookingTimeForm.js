@@ -181,7 +181,7 @@ export const BookingTimeForm = props => {
 
             {monthlyTimeSlots && timeZone ? (
               <FieldDateAndTimeInput
-                seatsEnabled={seatsEnabled}
+                seatsEnabled={seatsEnabled} 
                 setSeatsOptions={setSeatsOptions}
                 startDateInputProps={{
                   label: intl.formatMessage({ id: 'BookingTimeForm.bookingStartTitle' }),

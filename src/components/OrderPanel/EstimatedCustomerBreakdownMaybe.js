@@ -73,7 +73,7 @@ const estimatedBooking = (bookingStart, bookingEnd, lineItemUnitType, timeZone =
 // out), we must estimate the transaction for booking breakdown. This function creates
 // an estimated transaction object for that use case.
 //
-// We need to use the Template's backend to calculate the correct line items through thransactionLineItems
+// We need to use the Template's backend to calculate the correct line items through transactionLineItems
 // endpoint so that they can be passed to this estimated transaction.
 const estimatedCustomerTransaction = (
   lineItems,
@@ -123,10 +123,13 @@ const estimatedCustomerTransaction = (
 const EstimatedCustomerBreakdownMaybe = props => {
   const { breakdownData = {}, lineItems, timeZone, currency, marketplaceName, processName } = props;
   const { startDate, endDate } = breakdownData;
+  // console.log("processName" , processName) //(default-booking)
+  console.log("lineItems" , lineItems)
 
   let process = null;
   try {
     process = getProcess(processName);
+    
   } catch (e) {
     return (
       <div className={css.error}>
@@ -139,6 +142,8 @@ const EstimatedCustomerBreakdownMaybe = props => {
     item => LISTING_UNIT_TYPES.includes(item.code) && !item.reversal
   );
   const lineItemUnitType = unitLineItem?.code;
+  //line-item/night (LINE_ITEM_NIGHT)
+  //line-item/day (LINE_ITEM_DAY)
   const shouldHaveBooking = [LINE_ITEM_DAY, LINE_ITEM_NIGHT].includes(lineItemUnitType);
   const hasLineItems = lineItems && lineItems.length > 0;
   const hasRequiredBookingData = !shouldHaveBooking || (startDate && endDate);

@@ -21,6 +21,8 @@ export const addDays = (date, days) => {
  * @param {Number} firstDayOfWeek (0-6)
  * @returns Array of week arrays containing Date objects.
  */
+
+//used to generate the grid of dates
 export const getCalendarRows = (date, firstDayOfWeek) => {
   const shiftedFirstDayOfWeek = firstDayOfWeek === 0 ? 7 : firstDayOfWeek;
   const daysOfMonth = getDaysOfMonth(date, true, shiftedFirstDayOfWeek);

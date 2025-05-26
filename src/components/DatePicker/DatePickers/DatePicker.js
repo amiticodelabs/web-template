@@ -557,7 +557,7 @@ const DatePicker = props => {
     rangeEndHasValue,
     intl,
   };
-
+//animation for
   const translateX = index => {
     const initialPosition = -1 * (1 * SLIDE_WIDTH - OUTLINE_WIDTH);
     return index === -1
