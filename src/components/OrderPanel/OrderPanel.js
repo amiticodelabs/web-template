@@ -266,7 +266,6 @@ const OrderPanel = props => {
   const intl = useIntl();
   const location = useLocation();
   const history = useHistory();
-  
 
   useEffect(() => {
     setMounted(true);
@@ -355,7 +354,6 @@ const OrderPanel = props => {
   const allowOrdersOfMultipleItems = [STOCK_MULTIPLE_ITEMS, STOCK_INFINITE_MULTIPLE_ITEMS].includes(
     listingTypeConfig?.stockType
   );
-
   const searchParams = parse(location.search);
   const isOrderOpen = !!searchParams.orderOpen;
   const preselectedPriceVariantSlug = searchParams.bookableOption;
@@ -519,7 +517,7 @@ const OrderPanel = props => {
           </p>
         ) : null}
       </ModalInMobile>
-      
+
       <div className={css.openOrderForm}>
         <PriceMaybe
           price={price}

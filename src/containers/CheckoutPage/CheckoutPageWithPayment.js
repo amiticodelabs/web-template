@@ -75,6 +75,20 @@ const capitalizeString = s => `${s.charAt(0).toUpperCase()}${s.substr(1)}`;
 const prefixPriceVariantProperties = priceVariant => {
   if (!priceVariant) {
     return {};
+
+    //// Input priceVariant object
+    // const priceVariant = {
+    //   name: "premium",
+    //   price: 100,
+    //   duration: "1hour"
+    // }
+
+    // // Output after transformation
+    // {
+    //   priceVariantName: "premium",
+    //   priceVariantPrice: 100,
+    //   priceVariantDuration: "1hour"
+    // }
   }
 
   const entries = Object.entries(priceVariant).map(([key, value]) => {
@@ -141,32 +155,50 @@ const getOrderParams = (pageData, shippingDetails, optionalPaymentParams, config
   return orderParams;
 };
 
+//This function is used to fetch a "speculated" transaction - essentially a preview of what the
+// transaction would look like, including pricing calculations, before actually creating it.
 const fetchSpeculatedTransactionIfNeeded = (orderParams, pageData, fetchSpeculatedTransaction) => {
   const tx = pageData ? pageData.transaction : null;
   const pageDataListing = pageData.listing;
+  //Determines process name from either transaction or listing
   const processName =
     tx?.attributes?.processName ||
     pageDataListing?.attributes?.publicData?.transactionProcessAlias?.split('/')[0];
   const process = processName ? getProcess(processName) : null;
 
-  // If transaction has passed payment-pending state, speculated tx is not needed.
+  //Speculation is needed only if:
+  // Listing ID exists
+  // Order data exists
+  // Process is defined
+  // Transaction hasn't passed payment-pending state
   const shouldFetchSpeculatedTransaction =
     !!pageData?.listing?.id &&
     !!pageData.orderData &&
     !!process &&
     !hasTransactionPassedPendingPayment(tx, process);
 
+  //Gets process alias from listing
+  // Gets transaction ID if exists
+  // Checks if this is an inquiry transitioning to payment
   if (shouldFetchSpeculatedTransaction) {
     const processAlias = pageData.listing.attributes.publicData?.transactionProcessAlias;
     const transactionId = tx ? tx.id : null;
     const isInquiryInPaymentProcess =
       tx?.attributes?.lastTransition === process.transitions.INQUIRE;
 
+    //Which transition type to use (regular payment or post-inquiry payment)
+    // If the transition is privileged (requires special permissions)
     const requestTransition = isInquiryInPaymentProcess
       ? process.transitions.REQUEST_PAYMENT_AFTER_INQUIRY
       : process.transitions.REQUEST_PAYMENT;
     const isPrivileged = process.isPrivileged(requestTransition);
 
+    //Makes the API call with:
+    // Order parameters (quantity, dates, etc.)
+    // Process alias
+    // Transaction ID (if exists)
+    // Type of transition
+    // Privilege flag
     fetchSpeculatedTransaction(
       orderParams,
       processAlias,
@@ -201,7 +233,7 @@ export const loadInitialDataForStripePayments = ({
 }) => {
   // Fetch currentUser with stripeCustomer entity
   // Note: since there's need for data loading in "componentWillMount" function,
-  //       this is added here instead of loadData static function.
+  // this is added here instead of loadData static function.
   fetchStripeCustomer();
 
   // Fetch speculated transaction for showing price in order breakdown
@@ -215,11 +247,15 @@ export const loadInitialDataForStripePayments = ({
 };
 
 const handleSubmit = (values, process, props, stripe, submitting, setSubmitting) => {
+  //Prevents double submission
+  // Sets the submitting state to true
   if (submitting) {
     return;
   }
   setSubmitting(true);
 
+  //Extracts form values including card details, message, and selected payment method
+  // Gets the save-for-later preference
   const {
     history,
     config,
@@ -242,9 +278,14 @@ const handleSubmit = (values, process, props, stripe, submitting, setSubmitting)
   const { card, message, paymentMethod: selectedPaymentMethod, formValues } = values;
   const { saveAfterOnetimePayment: saveAfterOnetimePaymentRaw } = formValues;
 
+  //Determines if the card should be saved for future use
+  // Sets the payment flow type (one-time, save for later, or use saved card)
   const saveAfterOnetimePayment =
     Array.isArray(saveAfterOnetimePaymentRaw) && saveAfterOnetimePaymentRaw.length > 0;
   const selectedPaymentFlow = paymentFlow(selectedPaymentMethod, saveAfterOnetimePayment);
+
+  //Checks if the user has a default payment method saved
+  // Sets the stripe payment method ID
   const hasDefaultPaymentMethodSaved = hasDefaultPaymentMethod(stripeCustomerFetched, currentUser);
   const stripePaymentMethodId = hasDefaultPaymentMethodSaved
     ? currentUser?.stripeCustomer?.defaultPaymentMethod?.attributes?.stripePaymentMethodId
@@ -255,6 +296,8 @@ const handleSubmit = (values, process, props, stripe, submitting, setSubmitting)
   const hasPaymentIntentUserActionsDone =
     paymentIntent && STRIPE_PI_USER_ACTIONS_DONE_STATUSES.includes(paymentIntent.status);
 
+  //Builds parameters needed for payment processing
+  // Includes transaction data, card info, and billing details
   const requestPaymentParams = {
     pageData,
     speculatedTransaction,
@@ -278,6 +321,7 @@ const handleSubmit = (values, process, props, stripe, submitting, setSubmitting)
     setPageData,
   };
 
+  //Gets shipping details if applicable
   const shippingDetails = getShippingDetailsMaybe(formValues);
   // Note: optionalPaymentParams contains Stripe paymentMethod,
   // but that can also be passed on Step 2

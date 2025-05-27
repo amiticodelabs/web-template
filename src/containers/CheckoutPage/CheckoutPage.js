@@ -68,6 +68,7 @@ const EnhancedCheckoutPage = props => {
   const intl = useIntl();
   const history = useHistory();
 
+  //Runs only on Mount
   useEffect(() => {
     const {
       currentUser,
@@ -78,6 +79,10 @@ const EnhancedCheckoutPage = props => {
       fetchStripeCustomer,
     } = props;
     const initialData = { orderData, listing, transaction };
+    //handlePageData processes this data with session storage support
+    // If data exists in session storage, it's retrieved
+    // If not, uses the provided initialData
+    // STORAGE_KEY identifies this data in session storage
     const data = handlePageData(initialData, STORAGE_KEY, history);
     setPageData(data || {});
     setIsDataLoaded(true);
@@ -86,7 +91,12 @@ const EnhancedCheckoutPage = props => {
     if (isUserAuthorized(currentUser)) {
       // This is for processes using payments with Stripe integration
       if (getProcessName(data) !== INQUIRY_PROCESS_NAME) {
-        // Fetch StripeCustomer and speculateTransition for transactions that include Stripe payments
+        //Loads necessary Stripe-related data for payment processes
+        // Fetches:
+        // Stripe customer information
+        // Speculated transaction (price estimation)
+        // Only runs for payment-based processes
+        // Uses marketplace config for settings
         loadInitialDataForStripePayments({
           pageData: data || {},
           fetchSpeculatedTransaction,
@@ -247,12 +257,7 @@ const mapDispatchToProps = dispatch => ({
     dispatch(savePaymentMethod(stripeCustomer, stripePaymentMethodId)),
 });
 
-const CheckoutPage = compose(
-  connect(
-    mapStateToProps,
-    mapDispatchToProps
-  )
-)(EnhancedCheckoutPage);
+const CheckoutPage = compose(connect(mapStateToProps, mapDispatchToProps))(EnhancedCheckoutPage);
 
 CheckoutPage.setInitialValues = (initialValues, saveToSessionStorage = false) => {
   if (saveToSessionStorage) {

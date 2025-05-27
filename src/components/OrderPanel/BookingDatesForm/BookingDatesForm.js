@@ -506,7 +506,8 @@ const calculateLineItems = (
     });
   }
 };
-
+//determines whether to show the "next month" navigation button in the calendar:
+//If the next month is after the end of the booking window, it will not be shown
 const showNextMonthStepper = (currentMonth, dayCountAvailableForBooking, timeZone) => {
   const nextMonthDate = nextMonthFn(currentMonth, timeZone);
 
@@ -516,6 +517,8 @@ const showNextMonthStepper = (currentMonth, dayCountAvailableForBooking, timeZon
   );
 };
 
+//determines whether to show the "previous month" navigation button in the calendar:
+//If the previous month is before the start of the booking window, it will not be shown
 const showPreviousMonthStepper = (currentMonth, timeZone) => {
   const prevMonthDate = prevMonthFn(currentMonth, timeZone);
   const currentMonthDate = getStartOf(TODAY, 'month', timeZone);
@@ -524,6 +527,8 @@ const showPreviousMonthStepper = (currentMonth, timeZone) => {
 
 const getStartAndEndOnTimeZone = (startDate, endDate, isDaily, timeZone) => {
   // Parse the startDate and endDate into the target time zone
+  //First converts the local time to the listing's timezone using timeOfDayFromLocalToTimeZone
+  // Then ensures it starts at the beginning of the day (00:00:00) using getStartOf
   const parsedStart = startDate
     ? getStartOf(timeOfDayFromLocalToTimeZone(startDate, timeZone), 'day', timeZone)
     : startDate;
@@ -533,6 +538,7 @@ const getStartAndEndOnTimeZone = (startDate, endDate, isDaily, timeZone) => {
     : endDate;
 
   // Adjust endDate for API if isDaily is true
+  //Uses getExclusiveEndDate which adds one day to the end date
   const endDateForAPI = parsedEnd && isDaily ? getExclusiveEndDate(parsedEnd, timeZone) : parsedEnd;
 
   // Return the processed dates
@@ -545,8 +551,19 @@ const filterTimeSlotsByDate = (allTimeSlots, startDate, endDate) => {
     ({ attributes: { start, end } }) =>
       // Check if the timeslot is within or overlaps with the selected dates
       (start < startDate && end > startDate) ||
+      //Example: Time slot: Jan 1-3, Selected: Jan 2-4
+      //Timeslot:   |--------|
+      // Selected:        |--------|
       (start >= startDate && end <= endDate) ||
+      // Example: Time slot: Jan 2-3, Selected: Jan 1-4
+
+      // Timeslot:      |--|
+      //  Selected:    |--------|
       (start < endDate && end > endDate)
+    //Example: Time slot: Jan 3-5, Selected: Jan 1-4
+
+    //Timeslot:         |--------|
+    //  Selected:    |--------|
   );
 };
 
@@ -555,6 +572,8 @@ const findMinSeatsTimeSlot = timeSlots => {
   return timeSlots.reduce((minSeatsSlot, timeSlot) => {
     const { seats } = timeSlot.attributes;
     return !minSeatsSlot || seats < minSeatsSlot.seats ? timeSlot.attributes : minSeatsSlot;
+    //!minSeatsSlot: Is this the first time slot we're checking?
+    // seats < minSeatsSlot.seats: Does this time slot have fewer seats than our current minimum?
   }, null);
 };
 
@@ -563,6 +582,7 @@ const getMinSeatsOptions = (allTimeSlots, startDate, endDate) => {
   if (!startDate || !endDate) {
     return [];
   }
+  //Get time slots that overlap with selected dates
   const filteredTimeSlots = filterTimeSlotsByDate(allTimeSlots, startDate, endDate);
   const minSeatsSlot = findMinSeatsTimeSlot(filteredTimeSlots);
 

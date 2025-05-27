@@ -38,7 +38,7 @@ const handleFetchLineItems = ({
   fetchLineItemsInProgress,
   onFetchTransactionLineItems,
 }) => {
-  const stockReservationQuantity = Number.parseInt(quantity, 10);  //Convert the quantity from string to number.
+  const stockReservationQuantity = Number.parseInt(quantity, 10); //Convert the quantity from string to number.
   const deliveryMethodMaybe = deliveryMethod ? { deliveryMethod } : {}; //Prepare an optional deliveryMethod object if it exists.
   const isBrowser = typeof window !== 'undefined';
   if (
@@ -157,7 +157,6 @@ const renderForm = formRenderProps => {
     }
   }, []);
 
-
   // If form values change, update line-items for the order breakdown
   const handleOnChange = formValues => {
     const { quantity, deliveryMethod } = formValues.values;
@@ -180,6 +179,10 @@ const renderForm = formRenderProps => {
     if (!quantity || quantity < 1) {
       e.preventDefault();
       // Blur event will show validator message
+      //When formApi.blur('quantity') is called:
+      // The field is marked as touched
+      // The validation runs (checking if quantity is less than 1)
+      // If invalid, the error message appears and the field gets error styling
       formApi.blur('quantity');
       formApi.focus('quantity');
     } else if (displayDeliveryMethod && !deliveryMethod) {
