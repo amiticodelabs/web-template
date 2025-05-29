@@ -112,10 +112,13 @@ export const BookingTimeForm = props => {
   const [seatsOptions, setSeatsOptions] = useState([1]);
   
   const initialValuesMaybe =
+  // Case 1: Multiple price variants and a preselected option exists
     priceVariants.length > 1 && preselectedPriceVariant
       ? { initialValues: { priceVariantName: preselectedPriceVariant?.name } }
+      // Case 2: Only one price variant exists
       : priceVariants.length === 1
       ? { initialValues: { priceVariantName: priceVariants?.[0]?.name } }
+      // Case 3: No price variants exist
       : {};
 
   const classes = classNames(rootClassName || css.root, className);

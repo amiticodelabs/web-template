@@ -97,6 +97,7 @@ const openOrderModal = (isOwnListing, isClosed, history, location) => {
   if (isOwnListing || isClosed) {
     window.scrollTo(0, 0);
   } else {
+    //it adds an orderOpen=true parameter to the URL and updates the history
     const { pathname, search, state } = location;
     const searchString = `?${stringify({ ...parse(search), orderOpen: true })}`;
     history.push(`${pathname}${searchString}`, state);
@@ -139,6 +140,7 @@ const PriceMaybe = props => {
   const { listingType, unitType } = publicData || {};
 
   const foundListingTypeConfig = validListingTypes.find(conf => conf.listingType === listingType);
+  //displayPrice is a helper function that returns true if the listing type config has a price field
   const showPrice = displayPrice(foundListingTypeConfig);
   const isPriceVariationsInUse = !!publicData?.priceVariationsEnabled;
   const hasMultiplePriceVariants = publicData?.priceVariants?.length > 1;
@@ -153,6 +155,14 @@ const PriceMaybe = props => {
     <span className={css.priceValue}>{formatMoneyIfSupportedCurrency(price, intl)}</span>
   );
   const pricePerUnit = (
+    // "OrderPanel.perUnit": "per {unitType}"
+    /* <FormattedMessage 
+         id="OrderPanel.perUnit" 
+        values={{ unitType: "night" }} 
+          />  
+     */
+    // Output: "per night"
+
     <span className={css.perUnit}>
       <FormattedMessage id="OrderPanel.perUnit" values={{ unitType }} />
     </span>
@@ -265,11 +275,15 @@ const OrderPanel = props => {
   const [mounted, setMounted] = useState(false);
   const intl = useIntl();
   const location = useLocation();
+  //Returns the current location object representing the current URL
+  //location object has a state object that contains the state of the current location(we can send it through history.push)
   const history = useHistory();
+  //Provides methods to programmatically navigate between pages
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
   const {
     rootClassName,
     className,
@@ -297,9 +311,6 @@ const OrderPanel = props => {
     fetchLineItemsError,
     payoutDetailsWarning,
   } = props;
-
-  // console.log("location" , location);
-  // return;
 
   const publicData = listing?.attributes?.publicData || {};
   const { listingType, unitType, transactionProcessAlias = '', priceVariants, startTimeInterval } =
@@ -362,10 +373,20 @@ const OrderPanel = props => {
 
   // Note: publicData contains priceVariationsEnabled if listing is created with priceVariations enabled.
   const isPriceVariationsInUse = !!publicData?.priceVariationsEnabled;
+
+  //preselectedPriceVariant is the variant that would be selected by deafult when the page loads up
   const preselectedPriceVariant =
     Array.isArray(priceVariants) && preselectedPriceVariantSlug && isPriceVariationsInUse
       ? priceVariants.find(pv => pv?.name && createSlug(pv?.name) === preselectedPriceVariantSlug)
       : null;
+  //// If URL is: /listing/123?bookableOption=hourly-rate
+  // And priceVariants array is:
+  // const priceVariants = [
+  //   { name: "Hourly Rate", price: 50 },
+  //   { name: "Daily Rate", price: 300 }
+  // ];
+  // Then preselectedPriceVariant would be the "Hourly Rate" variant
+  // because createSlug("Hourly Rate") === "hourly-rate"
 
   const priceVariantsMaybe = isPriceVariationsInUse
     ? {

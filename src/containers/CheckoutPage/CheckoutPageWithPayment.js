@@ -278,7 +278,11 @@ const handleSubmit = (values, process, props, stripe, submitting, setSubmitting)
   const { card, message, paymentMethod: selectedPaymentMethod, formValues } = values;
   const { saveAfterOnetimePayment: saveAfterOnetimePaymentRaw } = formValues;
 
+  console.log('values', values);
+
   //Determines if the card should be saved for future use
+  //If the array is empty (unchecked) → saveAfterOnetimePayment = false
+  // If the array has any items (checked) → saveAfterOnetimePayment = true
   // Sets the payment flow type (one-time, save for later, or use saved card)
   const saveAfterOnetimePayment =
     Array.isArray(saveAfterOnetimePaymentRaw) && saveAfterOnetimePaymentRaw.length > 0;
@@ -287,6 +291,8 @@ const handleSubmit = (values, process, props, stripe, submitting, setSubmitting)
   //Checks if the user has a default payment method saved
   // Sets the stripe payment method ID
   const hasDefaultPaymentMethodSaved = hasDefaultPaymentMethod(stripeCustomerFetched, currentUser);
+  // The stripePaymentMethodId is the unique identifier that Stripe returns
+  // when card details are saved on their servers. Let me break down how this works:
   const stripePaymentMethodId = hasDefaultPaymentMethodSaved
     ? currentUser?.stripeCustomer?.defaultPaymentMethod?.attributes?.stripePaymentMethodId
     : null;
@@ -337,7 +343,8 @@ const handleSubmit = (values, process, props, stripe, submitting, setSubmitting)
   // which is either initiate-transition or initiate-transition-after-enquiry
   const orderParams = getOrderParams(pageData, shippingDetails, optionalPaymentParams, config);
 
-  // There are multiple XHR calls that needs to be made against Stripe API and Sharetribe Marketplace API on checkout with payments
+  // There are multiple XHR calls that needs to be made against Stripe API
+  // and Sharetribe Marketplace API on checkout with payments
   processCheckoutWithPayment(orderParams, requestPaymentParams)
     .then(response => {
       const { orderId, messageSuccess, paymentMethodSaved } = response;
@@ -347,14 +354,17 @@ const handleSubmit = (values, process, props, stripe, submitting, setSubmitting)
       const orderDetailsPath = pathByRouteName('OrderDetailsPage', routeConfiguration, {
         id: orderId.uuid,
       });
+      //Creates an object with two flags:
+      // initialMessageFailedToTransaction: For tracking failed messages
+      // savePaymentMethodFailed: Indicates if saving the payment method failed
       const initialValues = {
         initialMessageFailedToTransaction,
         savePaymentMethodFailed: !paymentMethodSaved,
       };
 
-      setOrderPageInitialValues(initialValues, routeConfiguration, dispatch);
+      setOrderPageInitialValues(initialValues, routeConfiguration, dispatch); //Saves these initial values to the order page state
       onSubmitCallback();
-      history.push(orderDetailsPath);
+      history.push(orderDetailsPath); //Redirects the user to the order details page
     })
     .catch(err => {
       console.error(err);
@@ -362,11 +372,18 @@ const handleSubmit = (values, process, props, stripe, submitting, setSubmitting)
     });
 };
 
+//This function is called when the Stripe library is first initialized
 const onStripeInitialized = (stripe, process, props) => {
   const { paymentIntent, onRetrievePaymentIntent, pageData } = props;
   const tx = pageData?.transaction || null;
 
   // We need to get up to date PI, if payment is pending but it's not expired.
+  //This checks if we need to fetch a payment intent. It will be true only if:
+  // Stripe is initialized (stripe)
+  // No payment intent exists yet (!paymentIntent)
+  // There's a transaction (tx?.id)
+  // Transaction is in PENDING_PAYMENT state
+  // Payment hasn't expired
   const shouldFetchPaymentIntent =
     stripe &&
     !paymentIntent &&
@@ -374,6 +391,8 @@ const onStripeInitialized = (stripe, process, props) => {
     process?.getState(tx) === process?.states.PENDING_PAYMENT &&
     !hasPaymentExpired(tx, process);
 
+  //If we need to fetch payment intent, get the client secret from the transaction's protected data
+  // The client secret is needed to retrieve the payment intent from Stripe
   if (shouldFetchPaymentIntent) {
     const { stripePaymentIntentClientSecret } =
       tx.attributes.protectedData?.stripePaymentIntents?.default || {};
@@ -447,7 +466,7 @@ export const CheckoutPageWithPayment = props => {
     title,
     config,
   } = props;
-
+  console.log('currentUser', currentUser);
   // Since the listing data is already given from the ListingPage
   // and stored to handle refreshes, it might not have the possible
   // deleted or closed information in it. If the transaction
@@ -459,6 +478,7 @@ export const CheckoutPageWithPayment = props => {
     isTransactionInitiateListingNotFoundError(initiateOrderError);
 
   const { listing, transaction, orderData } = pageData;
+  console.log("pageData" , pageData)
   const existingTransaction = ensureTransaction(transaction);
   const speculatedTransaction = ensureTransaction(speculatedTransactionMaybe, {}, null);
 

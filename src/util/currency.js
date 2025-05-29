@@ -248,6 +248,7 @@ export const formatMoney = (intl, value) => {
   if (!(value instanceof Money)) {
     throw new Error('Value must be a Money type');
   }
+  //Then it converts the money amount to a number using convertMoneyToNumber
   const valueAsNumber = convertMoneyToNumber(value);
 
   // See: https://github.com/yahoo/react-intl/wiki/API#formatnumber
@@ -257,6 +258,9 @@ export const formatMoney = (intl, value) => {
   const numberFormatOptions = getCurrencyFormatting(value.currency, options);
 
   return intl.formatNumber(valueAsNumber, numberFormatOptions);
+  //const money = new Money(5000, "USD");  // 50.00 USD (amount is in cents/subunits)
+  //formatMoney(intl, money);
+  // Output: "$50.00"
 };
 
 /**
