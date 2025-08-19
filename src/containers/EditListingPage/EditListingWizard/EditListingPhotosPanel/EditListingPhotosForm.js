@@ -140,6 +140,7 @@ const FieldListingImage = props => {
 export const EditListingPhotosForm = props => {
   const [state, setState] = useState({ imageUploadRequested: false });
   const [submittedImages, setSubmittedImages] = useState([]);
+  console.log(submittedImages , "submittedImages")
 
   const onImageUploadHandler = files => {
     //Taking multiple files at a time
@@ -191,6 +192,7 @@ export const EditListingPhotosForm = props => {
         } = formRenderProps;
 
         const images = values.images;
+        console.log(images , "images")
         const { aspectWidth = 1, aspectHeight = 1, variantPrefix } = listingImageConfig;
 
         const { publishListingError, showListingsError, updateListingError, uploadImageError } =
@@ -202,6 +204,7 @@ export const EditListingPhotosForm = props => {
         const imageIdsFromProps = arrayOfImgIds(images);
         const imageIdsFromPreviousSubmit = arrayOfImgIds(submittedImages);
         const imageArrayHasSameImages = isEqual(imageIdsFromProps, imageIdsFromPreviousSubmit);
+        console.log(imageArrayHasSameImages , "imageArrayHasSameImages")
         const submittedOnce = submittedImages.length > 0;
         const pristineSinceLastSubmit = submittedOnce && imageArrayHasSameImages;
 

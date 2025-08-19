@@ -676,8 +676,36 @@ export const makeTransition = (txId, transitionName, params) => (dispatch, getSt
   }
   dispatch(transitionRequest(transitionName));
 
-  return sdk.transactions
-    .transition({ id: txId, transition: transitionName, params }, { expand: true })
+  // Check if this is a privileged transition that needs special handling
+  const privilegedTransitions = ['transition/accept', 'transition/pay-remaining'];
+  const isPrivilegedTransition = privilegedTransitions.includes(transitionName);
+
+  const transitionCall = isPrivilegedTransition
+    ? // For privileged transitions, call the custom API endpoint
+      fetch('/api/transition-privileged', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          bodyParams: {
+            id: txId,
+            transition: transitionName,
+            params: params || {},
+          },
+          orderData: params || {},
+        }),
+      }).then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      })
+    : // For regular transitions, use the SDK
+      sdk.transactions.transition({ id: txId, transition: transitionName, params }, { expand: true });
+
+  return transitionCall
     .then(response => {
       dispatch(addMarketplaceEntities(response));
       dispatch(transitionSuccess());

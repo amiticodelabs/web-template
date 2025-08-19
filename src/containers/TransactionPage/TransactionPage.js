@@ -533,7 +533,7 @@ export const TransactionPageComponent = props => {
   ) : (
     loadingOrFailedFetching
   );
-
+console.log(transaction , "transaction")
   return (
     <Page
       title={intl.formatMessage({ id: 'TransactionPage.schemaTitle' }, { title: listingTitle })}

@@ -17,12 +17,12 @@ export const transitions = {
   // created with the initial request-payment transition.
   // At this transition a PaymentIntent is created by Marketplace API.
   // After this transition, the actual payment must be made on client-side directly to Stripe.
-  REQUEST_PAYMENT: 'transition/request-payment',
+  REQUEST_PAYMENT: 'transition/initiate-privileged',
 
   // A customer can also initiate a transaction with an inquiry, and
   // then transition that with a request.
   INQUIRE: 'transition/inquire',
-  REQUEST_PAYMENT_AFTER_INQUIRY: 'transition/request-payment-after-inquiry',
+  REQUEST_PAYMENT_AFTER_INQUIRY: 'transition/initiate-privileged-after-inquiry',
 
   // Stripe SDK might need to ask 3D security from customer, in a separate front-end step.
   // Therefore we need to make another transition to Marketplace API,
@@ -62,6 +62,10 @@ export const transitions = {
   EXPIRE_CUSTOMER_REVIEW_PERIOD: 'transition/expire-customer-review-period',
   EXPIRE_PROVIDER_REVIEW_PERIOD: 'transition/expire-provider-review-period',
   EXPIRE_REVIEW_PERIOD: 'transition/expire-review-period',
+  PAY_REMAINING: 'transition/pay-remaining-privileged',
+  // PENDING_REMAINING_AMOUNT: 'transition/pending-remaining-amount',
+    CUSTOMER_CONFIRM: 'transition/customer-confirm',
+  CUSTOMER_REJECT: 'transition/customer-reject',
 };
 
 /**
@@ -87,6 +91,8 @@ export const states = {
   REVIEWED: 'reviewed',
   REVIEWED_BY_CUSTOMER: 'reviewed-by-customer',
   REVIEWED_BY_PROVIDER: 'reviewed-by-provider',
+  PENDING_REMAINING_AMOUNT: 'pending-remaining-amount',
+  // PENDING_CUSTOMER_ACCEPTANCE: 'pending-customer-acceptance',
 };
 
 /**
@@ -142,10 +148,28 @@ export const graph = {
         [transitions.DECLINE]: states.DECLINED,
         [transitions.OPERATOR_DECLINE]: states.DECLINED,
         [transitions.EXPIRE]: states.EXPIRED,
-        [transitions.ACCEPT]: states.ACCEPTED,
+        [transitions.ACCEPT]: states.PENDING_REMAINING_AMOUNT,
         [transitions.OPERATOR_ACCEPT]: states.ACCEPTED,
       },
     },
+
+    [states.PENDING_REMAINING_AMOUNT]: {
+      on: {
+        [transitions.PAY_REMAINING]: states.ACCEPTED,
+        [transitions.CUSTOMER_CONFIRM]: states.ACCEPTED,
+        [transitions.CUSTOMER_REJECT]: states.DECLINED,
+        // If you want auto-accept, add here as well
+        // [transitions.AUTO_ACCEPT]: states.ACCEPTED,
+      },
+    },
+
+    // [states.PENDING_CUSTOMER_ACCEPTANCE]: {
+    //   on: {
+    //     [transitions.CUSTOMER_CONFIRM]: states.ACCEPTED,
+    //     [transitions.CUSTOMER_REJECT]: states.DECLINED,
+    //     [transitions.AUTO_ACCEPT]: states.ACCEPTED,
+    //   },
+    // },
 
     [states.DECLINED]: {},
     [states.EXPIRED]: {},
@@ -221,11 +245,20 @@ export const isProviderReview = transition => {
 // i.e. the backend. This helper is used to check if the transition
 // should go through the local API endpoints, or if using JS SDK is
 // enough.
+// export const isPrivileged = transition => {
+//   return [transitions.REQUEST_PAYMENT, transitions.REQUEST_PAYMENT_AFTER_INQUIRY].includes(
+//     transition
+//   );
+// };
 export const isPrivileged = transition => {
-  return [transitions.REQUEST_PAYMENT, transitions.REQUEST_PAYMENT_AFTER_INQUIRY].includes(
-    transition
-  );
+  return [
+    transitions.REQUEST_PAYMENT,
+    transitions.REQUEST_PAYMENT_AFTER_INQUIRY,
+    transitions.ACCEPT, // Added because it calls privileged-set-line-items for split payment
+    transitions.PAY_REMAINING, // Added because second payment also needs privileged handling
+  ].includes(transition);
 };
+
 
 // Check when transaction is completed (booking over)
 export const isCompleted = transition => {

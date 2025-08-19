@@ -5,17 +5,11 @@ import {
   ConditionalResolver,
 } from '../../transactions/transaction';
 
-/**
- * Get state data against booking process for TransactionPage's UI.
- * I.e. info about showing action buttons, current state etc.
- *
- * @param {*} txInfo detials about transaction
- * @param {*} processInfo  details about process
- */
 export const getStateDataForBookingProcess = (txInfo, processInfo) => {
   const { transaction, transactionRole, nextTransitions } = txInfo;
   const isProviderBanned = transaction?.provider?.attributes?.banned;
-  const isCustomerBanned = transaction?.provider?.attributes?.banned;
+  const isCustomerBanned = transaction?.customer?.attributes?.banned; // FIXED
+
   const _ = CONDITIONAL_RESOLVER_WILDCARD;
 
   const {
@@ -89,8 +83,31 @@ export const getStateDataForBookingProcess = (txInfo, processInfo) => {
     .cond([states.REVIEWED, _], () => {
       return { processName, processState, showDetailCardHeadings: true, showReviews: true };
     })
+    .cond([states.PENDING_REMAINING_AMOUNT, CUSTOMER], () => {
+      const primary = actionButtonProps(transitions.PAY_REMAINING, CUSTOMER);
+      const secondary = actionButtonProps(transitions.CUSTOMER_REJECT, CUSTOMER);
+      return {
+        processName,
+        processState,
+        showDetailCardHeadings: true,
+        showActionButtons: true,
+        primaryButtonProps: primary,
+        secondaryButtonProps: secondary,
+        showExtraInfo: true,
+        // Optional: custom UI text for split-payment
+        extraInfoKey: 'payRemainingNotice',
+      };
+    })
+    .cond([states.PENDING_REMAINING_AMOUNT, PROVIDER], () => {
+      return {
+        processName,
+        processState,
+        showDetailCardHeadings: true,
+        showExtraInfo: true,
+        displayStatus: 'waitingForCustomerToPayRemaining',
+      };
+    })
     .default(() => {
-      // Default values for other states
       return { processName, processState, showDetailCardHeadings: true };
     })
     .resolve();

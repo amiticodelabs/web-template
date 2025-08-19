@@ -1,4 +1,19 @@
 {
+  "BookingCustomerConfirmed": {
+    "Title": "Booking Confirmed",
+    "Description": "The customer has confirmed their booking.",
+    "Subject": "Booking Confirmed"
+  },
+  "BookingOperatorNeedsConfirmation": {
+    "Title": "Action Required: Confirm Your Booking",
+    "Description": "Your booking request has been processed. Please confirm to proceed.",
+    "Subject": "Action Required: Confirm Your Booking"
+  },
+  "BookingNeedsConfirmation": {
+    "Title": "Action Required: Confirm Your Booking",
+    "Description": "Please confirm your booking to proceed.",
+    "Subject": "Action Required: Confirm Your Booking"
+  },
   "EditListingWizard.tabLabelExtraFeatures": "Extra features",
   "EditListingExtraFeaturesPanel.createListingTitle": "Extra features",
   "EditListingExtraFeaturesPanel.title": "Edit the extra features of {listingTitle}",

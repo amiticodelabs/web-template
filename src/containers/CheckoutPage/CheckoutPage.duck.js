@@ -199,7 +199,12 @@ export const initiateOrder = (
   const bookingParamsMaybe = bookingDates || {};
 
   // Parameters only for client app's server
-  const orderData = deliveryMethod ? { deliveryMethod } : {};
+  // const orderData = deliveryMethod ? { deliveryMethod } : {};
+  const orderData = {
+    ...(deliveryMethod ? { deliveryMethod } : {}),
+    isSplitPayment: true, // Enable split payment for all bookings
+    remainingPayup: false, // This is the first payment (not remaining)
+  };
 
   // Parameters for Marketplace API
   const transitionParams = {
@@ -412,6 +417,8 @@ export const speculateTransaction = (
   const orderData = {
     ...(deliveryMethod ? { deliveryMethod } : {}),
     ...(priceVariantName ? { priceVariantName } : {}),
+    isSplitPayment: true, // Enable split payment for all bookings
+    remainingPayup: false, // This is the first payment (not remaining)
   };
 
   // Parameters for Marketplace API

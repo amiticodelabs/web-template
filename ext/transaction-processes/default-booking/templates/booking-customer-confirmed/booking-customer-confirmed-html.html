@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+{{set-translations (asset "content/email-texts.json")}}
+{{set-locale (asset "general/localization.json" "locale" "en_US")}}
+{{set-timezone transaction.listing.availability-plan.timezone}}
+<html>
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"></head>
+<body>
+  <h1>{{t "BookingCustomerConfirmed.Title" "Booking Confirmed"}}</h1>
+  <p>{{t "BookingCustomerConfirmed.Description" "The customer has confirmed their booking."}}</p>
+  <p><a href="{{marketplace.url}}/sale/{{url-encode id}}/">{{t "View booking details"}}</a></p>
+</body>
+</html>

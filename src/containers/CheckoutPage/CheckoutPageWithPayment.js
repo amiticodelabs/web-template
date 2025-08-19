@@ -34,6 +34,7 @@ import MobileListingImage from './MobileListingImage';
 import MobileOrderBreakdown from './MobileOrderBreakdown';
 
 import css from './CheckoutPage.module.css';
+import LineItemSplitPaymentMaybe from '../../components/OrderBreakdown/LineItemSplitPaymentMaybe.js';
 
 // Stripe PaymentIntent statuses, where user actions are already completed
 // https://stripe.com/docs/payments/payment-intents/status
@@ -466,7 +467,7 @@ export const CheckoutPageWithPayment = props => {
     title,
     config,
   } = props;
-  console.log('currentUser', currentUser);
+
   // Since the listing data is already given from the ListingPage
   // and stored to handle refreshes, it might not have the possible
   // deleted or closed information in it. If the transaction
@@ -496,6 +497,7 @@ export const CheckoutPageWithPayment = props => {
 
   // Show breakdown only when (speculated?) transaction is loaded
   // (i.e. it has an id and lineItems)
+  console.log(tx , "tx")
   const breakdown =
     tx.id && tx.attributes.lineItems?.length > 0 ? (
       <OrderBreakdown
@@ -505,6 +507,15 @@ export const CheckoutPageWithPayment = props => {
         {...txBookingMaybe}
         currency={config.currency}
         marketplaceName={config.marketplaceName}
+      />
+    ) : null;
+
+    const customBreakDown =  (tx.id && tx.attributes.lineItems?.length > 0) ? (
+      <LineItemSplitPaymentMaybe
+        transaction={tx}
+        showSplitBreakdown={true}
+        isSplitPayment={true}
+        intl={intl}
       />
     ) : null;
 
@@ -676,7 +687,7 @@ export const CheckoutPageWithPayment = props => {
           speculateTransactionErrorMessage={errorMessages.speculateTransactionErrorMessage}
           isInquiryProcess={false}
           processName={processName}
-          breakdown={breakdown}
+          breakdown={customBreakDown}
           intl={intl}
         />
       </div>

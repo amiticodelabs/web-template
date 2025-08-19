@@ -694,7 +694,7 @@ export function requestUpdateListing(tab, data, config) {
 
 export const requestPublishListingDraft = listingId => (dispatch, getState, sdk) => {
   dispatch(publishListingRequest(listingId));
-
+console.log("publishing listing")
   return sdk.ownListings
     .publishDraft({ id: listingId }, { expand: true })
     .then(response => {

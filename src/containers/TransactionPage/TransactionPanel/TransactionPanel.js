@@ -174,6 +174,9 @@ export class TransactionPanelComponent extends Component {
       hasViewingRights,
     } = this.props;
 
+
+    console.log(stateData , "stateData")
+
     const isCustomer = transactionRole === 'customer';
     const isProvider = transactionRole === 'provider';
 

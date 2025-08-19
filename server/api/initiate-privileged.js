@@ -9,6 +9,7 @@ const {
 
 module.exports = (req, res) => {
   const { isSpeculative, orderData, bodyParams, queryParams } = req.body;
+  console.log("initiated privileged transcation")
 
   const sdk = getSdk(req, res);
   let lineItems = null;
