@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 
 // Import contexts and util modules
 import { FormattedMessage, intlShape } from '../../util/reactIntl';
-import { pathByRouteName } from '../../util/routes';
+import { createResourceLocatorString, findRouteByRouteName, pathByRouteName } from '../../util/routes';
 import { isValidCurrencyForTransactionProcess } from '../../util/fieldHelpers.js';
 import { propTypes } from '../../util/types';
 import { ensureTransaction } from '../../util/data';
@@ -14,7 +14,6 @@ import { getProcess, isBookingProcessAlias } from '../../transactions/transactio
 import { H3, H4, NamedLink, OrderBreakdown, Page } from '../../components';
 
 import {
-  bookingDatesMaybe,
   getBillingDetails,
   getFormattedTotalPrice,
   getShippingDetailsMaybe,
@@ -23,6 +22,7 @@ import {
   hasPaymentExpired,
   hasTransactionPassedPendingPayment,
   processCheckoutWithPayment,
+  processRemainingPayment,
   setOrderPageInitialValues,
 } from './CheckoutPageTransactionHelpers.js';
 import { getErrorMessages } from './ErrorMessages';
@@ -34,6 +34,8 @@ import MobileListingImage from './MobileListingImage';
 import MobileOrderBreakdown from './MobileOrderBreakdown';
 
 import css from './CheckoutPage.module.css';
+import LineItemSplitPaymentMaybe from '../../components/OrderBreakdown/LineItemSplitPaymentMaybe.js';
+import { timestampToDate } from '../../util/dates.js';
 
 // Stripe PaymentIntent statuses, where user actions are already completed
 // https://stripe.com/docs/payments/payment-intents/status
@@ -50,8 +52,8 @@ const paymentFlow = (selectedPaymentMethod, saveAfterOnetimePayment) => {
   return selectedPaymentMethod === 'defaultCard'
     ? USE_SAVED_CARD
     : saveAfterOnetimePayment
-    ? PAY_AND_SAVE_FOR_LATER_USE
-    : ONETIME_PAYMENT;
+      ? PAY_AND_SAVE_FOR_LATER_USE
+      : ONETIME_PAYMENT;
 };
 
 const capitalizeString = s => `${s.charAt(0).toUpperCase()}${s.substr(1)}`;
@@ -95,13 +97,21 @@ const prefixPriceVariantProperties = priceVariant => {
  * @param {Object} config app-wide configs. This contains hosted configs too.
  * @returns orderParams.
  */
-const getOrderParams = (pageData, shippingDetails, optionalPaymentParams, config) => {
+const getOrderParams = (pageData, shippingDetails, optionalPaymentParams, config, isRemainingPayup = false) => {
+  console.log("order data", pageData);
+  
   const quantity = pageData.orderData?.quantity;
   const quantityMaybe = quantity ? { quantity } : {};
   const seats = pageData.orderData?.seats;
   const seatsMaybe = seats ? { seats } : {};
+  const units = pageData.orderData?.units;
+  const unitsMaybe = units ? { units } : {};
   const deliveryMethod = pageData.orderData?.deliveryMethod;
   const deliveryMethodMaybe = deliveryMethod ? { deliveryMethod } : {};
+  console.log(pageData.orderData.bookingDates , "booking dates from order data")
+  
+  console.log("getOrderParams - extracted values:", { quantity, seats, units, quantityMaybe, seatsMaybe, unitsMaybe });
+  
   const { listingType, unitType, priceVariants } = pageData?.listing?.attributes?.publicData || {};
 
   // price variant data for fixed duration bookings
@@ -133,11 +143,15 @@ const getOrderParams = (pageData, shippingDetails, optionalPaymentParams, config
     ...deliveryMethodMaybe,
     ...quantityMaybe,
     ...seatsMaybe,
+    ...unitsMaybe,
     ...bookingDatesMaybe(pageData.orderData?.bookingDates),
     ...priceVariantNameMaybe,
     ...protectedDataMaybe,
     ...optionalPaymentParams,
+    isRemainingPayup : pageData.orderData?.isRemainingPayup || isRemainingPayup,
   };
+  
+  console.log("getOrderParams - final orderParams:", orderParams);
   return orderParams;
 };
 
@@ -199,6 +213,7 @@ export const loadInitialDataForStripePayments = ({
   fetchStripeCustomer,
   config,
 }) => {
+  console.log("load initial data for stripe")
   // Fetch currentUser with stripeCustomer entity
   // Note: since there's need for data loading in "componentWillMount" function,
   //       this is added here instead of loadData static function.
@@ -209,12 +224,90 @@ export const loadInitialDataForStripePayments = ({
   // The way to pass it to checkout page is through pageData.orderData
   const shippingDetails = {};
   const optionalPaymentParams = {};
-  const orderParams = getOrderParams(pageData, shippingDetails, optionalPaymentParams, config);
+  const orderParams = getOrderParams(pageData, shippingDetails, optionalPaymentParams, config, false); // isRemainingPayup: false for first payment
 
   fetchSpeculatedTransactionIfNeeded(orderParams, pageData, fetchSpeculatedTransaction);
 };
 
-const handleSubmit = (values, process, props, stripe, submitting, setSubmitting) => {
+export const handleRemainingPayup = ({ parameters, values }) => {
+  console.log("handle remaining payup running");
+  const {
+    history,
+    currentUser,
+    listing,
+    transactionId,
+    callSetInitialValues,
+    onInitializeCardPaymentData,
+    routes
+  } = parameters;
+
+  const {
+    bookingStartTime,
+    bookingEndTime,
+    deliveryMethod,
+    service = {},
+    quantity,
+    units,
+    seats,
+    ...otherOrderData
+  } = values;
+
+  console.log(bookingStartTime , bookingEndTime , "booking time")
+
+  // Create booking dates if available
+  const bookingMaybe = bookingStartTime && bookingEndTime
+    ? {
+        bookingDates: {
+          bookingStart: timestampToDate(bookingStartTime),
+          bookingEnd: timestampToDate(bookingEndTime),
+        },
+      }
+    : {};
+    console.log(bookingMaybe , "bookingMaybe")
+
+  const deliveryMethodMaybe = deliveryMethod ? { deliveryMethod } : {};
+  const quantityMaybe = quantity ? { quantity } : {};
+  const unitsMaybe = units ? { units } : {};
+  const seatsMaybe = seats ? { seats } : {};
+
+  // Set up initial values for remaining payment checkout
+  const initialValues = {
+    listing,
+    orderData: {
+      isRemainingPayup: true,
+      parentTransactionId: transactionId,
+      ...bookingMaybe,
+      ...deliveryMethodMaybe,
+      ...quantityMaybe,
+      ...unitsMaybe,
+      ...seatsMaybe,
+      ...otherOrderData,
+    },
+    confirmPaymentError: null,
+  };
+
+  const saveToSessionStorage = true;
+  // const saveToSessionStorage = !currentUser;
+  
+  // Customize checkout page state with current listing and selected orderData
+  const { setInitialValues } = findRouteByRouteName('CheckoutPage', routes);
+  callSetInitialValues(setInitialValues, initialValues, saveToSessionStorage);
+
+  // Clear previous Stripe errors from store if there is any
+  onInitializeCardPaymentData();
+
+  // Redirect to CheckoutPage
+  history.push(
+    createResourceLocatorString(
+      'CheckoutPage',
+      routes,
+      { id: listing.id.uuid, slug: createSlug(listing.attributes.title) },
+      {}
+    )
+  );
+};
+
+const handleSubmit = (values, process, props, stripe, submitting, setSubmitting, isRemainingPayment) => {
   if (submitting) {
     return;
   }
@@ -286,15 +379,17 @@ const handleSubmit = (values, process, props, stripe, submitting, setSubmitting)
     selectedPaymentFlow === USE_SAVED_CARD && hasDefaultPaymentMethodSaved
       ? { paymentMethod: stripePaymentMethodId }
       : selectedPaymentFlow === PAY_AND_SAVE_FOR_LATER_USE
-      ? { setupPaymentMethodForSaving: true }
-      : {};
+        ? { setupPaymentMethodForSaving: true }
+        : {};
 
-  // These are the order parameters for the first payment-related transition
-  // which is either initiate-transition or initiate-transition-after-enquiry
-  const orderParams = getOrderParams(pageData, shippingDetails, optionalPaymentParams, config);
+  // These are the order parameters for the payment-related transition
+  const orderParams = getOrderParams(pageData, shippingDetails, optionalPaymentParams, config, isRemainingPayment);
 
   // There are multiple XHR calls that needs to be made against Stripe API and Sharetribe Marketplace API on checkout with payments
-  processCheckoutWithPayment(orderParams, requestPaymentParams)
+  // Use different payment processing function based on whether this is a remaining payment
+  const paymentProcessor = isRemainingPayment ? processRemainingPayment : processCheckoutWithPayment;
+  // const paymentProcessor = isRemainingPayment ? handleRemainingPayup : processCheckoutWithPayment;
+  paymentProcessor(orderParams, requestPaymentParams)
     .then(response => {
       const { orderId, messageSuccess, paymentMethodSaved } = response;
       setSubmitting(false);
@@ -404,7 +499,16 @@ export const CheckoutPageWithPayment = props => {
     listingTitle,
     title,
     config,
+    location,
   } = props;
+
+  // Check if this is a remaining payment based on orderData flag or transaction state
+  const tempTransaction = ensureTransaction(pageData.transaction);
+  const tempProcess = getProcess(processName);
+  const isRemainingPaymentFromState = tempTransaction && tempProcess?.getState(tempTransaction) === tempProcess?.states.PENDING_REMAINING_AMOUNT;
+  const isRemainingPaymentFromOrderData = pageData.orderData?.isRemainingPayup === true;
+  const isRemainingPayment = isRemainingPaymentFromOrderData || isRemainingPaymentFromState;
+  console.log(isRemainingPayment, "isRemainingPayment", { isRemainingPaymentFromOrderData, isRemainingPaymentFromState });
 
   // Since the listing data is already given from the ListingPage
   // and stored to handle refreshes, it might not have the possible
@@ -445,6 +549,18 @@ export const CheckoutPageWithPayment = props => {
         marketplaceName={config.marketplaceName}
       />
     ) : null;
+
+  const customBreakdown = tx.id && tx.attributes.lineItems?.length > 0 ? (
+    <LineItemSplitPaymentMaybe
+      className={css.orderBreakdown}
+      {...txBookingMaybe}
+      userRole="customer"
+      transaction={tx}
+      intl={intl}
+      currency={config.currency}
+      marketplaceName={config.marketplaceName}
+    />
+  ) : null
 
   const totalPrice =
     tx?.attributes?.lineItems?.length > 0 ? getFormattedTotalPrice(tx, intl) : null;
@@ -569,7 +685,7 @@ export const CheckoutPageWithPayment = props => {
               <StripePaymentForm
                 className={css.paymentForm}
                 onSubmit={values =>
-                  handleSubmit(values, process, props, stripe, submitting, setSubmitting)
+                  handleSubmit(values, process, props, stripe, submitting, setSubmitting, isRemainingPayment)
                 }
                 inProgress={submitting}
                 formId="CheckoutPagePaymentForm"
@@ -615,7 +731,7 @@ export const CheckoutPageWithPayment = props => {
           speculateTransactionErrorMessage={errorMessages.speculateTransactionErrorMessage}
           isInquiryProcess={false}
           processName={processName}
-          breakdown={breakdown}
+          breakdown={customBreakdown}
           showListingImage={showListingImage}
           intl={intl}
         />
@@ -625,3 +741,33 @@ export const CheckoutPageWithPayment = props => {
 };
 
 export default CheckoutPageWithPayment;
+
+/**
+ * BookingDates are passed to the API and they need to be in UTC time zone.
+ * @param {*} bookingDates should contain { bookingStart, bookingEnd }
+ * @returns maybe object containing bookingStart and bookingEnd in correct format
+ */
+const bookingDatesMaybe = bookingDates => {
+  console.log("bookingDatesMaybe - input bookingDates:", bookingDates);
+  
+  const { bookingStart, bookingEnd } = bookingDates || {};
+  
+  // Handle both Date objects and timestamp strings
+  const startDate = bookingStart instanceof Date ? bookingStart : 
+                   bookingStart ? new Date(bookingStart) : null;
+  const endDate = bookingEnd instanceof Date ? bookingEnd : 
+                 bookingEnd ? new Date(bookingEnd) : null;
+  
+  console.log("bookingDatesMaybe - processed dates:", { startDate, endDate });
+  
+  const bookingStartMaybe = startDate ? { bookingStart: startDate } : {};
+  const bookingEndMaybe = endDate ? { bookingEnd: endDate } : {};
+  
+  const result = {
+    ...bookingStartMaybe,
+    ...bookingEndMaybe,
+  };
+  
+  console.log("bookingDatesMaybe - result:", result);
+  return result;
+};

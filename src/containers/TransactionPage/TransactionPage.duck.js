@@ -11,6 +11,8 @@ import {
   stringifyDateToISO8601,
 } from '../../util/dates';
 import { isTransactionsTransitionInvalidTransition, storableError } from '../../util/errors';
+import { isPrivileged, transitions as bookingTransitions } from '../../transactions/transactionProcessBooking';
+import { transitionPrivileged } from '../../util/api';
 import { transactionLineItems } from '../../util/api';
 import * as log from '../../util/log';
 import {
@@ -671,6 +673,7 @@ const refreshTransactionEntity = (sdk, txId, dispatch) => {
 };
 
 export const makeTransition = (txId, transitionName, params) => (dispatch, getState, sdk) => {
+  console.log("make transition running")
   if (transitionInProgress(getState())) {
     return Promise.reject(new Error('Transition already in progress'));
   }

@@ -4,6 +4,7 @@ const {
   calculateShippingFee,
   getProviderCommissionMaybe,
   getCustomerCommissionMaybe,
+  calculateTotalFromLineItems,
 } = require('./lineItemHelpers');
 const { types } = require('sharetribe-flex-sdk');
 const { Money } = types;
@@ -27,26 +28,26 @@ const getItemQuantityAndLineItems = (orderData, publicData, currency) => {
   // Calculate shipping fee if applicable
   const shippingFee = isShipping
     ? calculateShippingFee(
-        shippingPriceInSubunitsOneItem,
-        shippingPriceInSubunitsAdditionalItems,
-        currency,
-        quantity
-      )
+      shippingPriceInSubunitsOneItem,
+      shippingPriceInSubunitsAdditionalItems,
+      currency,
+      quantity
+    )
     : null;
 
   // Add line-item for given delivery method.
   // Note: by default, pickup considered as free.
   const deliveryLineItem = !!shippingFee
     ? [
-        {
-          code: 'line-item/shipping-fee',
-          unitPrice: shippingFee,
-          quantity: 1,
-          includeFor: ['customer', 'provider'],
-        },
-      ]
+      {
+        code: 'line-item/shipping-fee',
+        unitPrice: shippingFee,
+        quantity: 1,
+        includeFor: ['customer', 'provider'],
+      },
+    ]
     : isPickup
-    ? [
+      ? [
         {
           code: 'line-item/pickup-fee',
           unitPrice: new Money(0, currency),
@@ -54,7 +55,7 @@ const getItemQuantityAndLineItems = (orderData, publicData, currency) => {
           includeFor: ['customer', 'provider'],
         },
       ]
-    : [];
+      : [];
 
   return { quantity, extraLineItems: deliveryLineItem };
 };
@@ -179,12 +180,12 @@ exports.transactionLineItems = (listing, orderData, providerCommission, customer
     unitType === 'item'
       ? getItemQuantityAndLineItems(orderData, publicData, currency)
       : unitType === 'fixed'
-      ? getFixedQuantityAndLineItems(orderData)
-      : unitType === 'hour'
-      ? getHourQuantityAndLineItems(orderData)
-      : ['day', 'night'].includes(unitType)
-      ? getDateRangeQuantityAndLineItems(orderData, code)
-      : {};
+        ? getFixedQuantityAndLineItems(orderData)
+        : unitType === 'hour'
+          ? getHourQuantityAndLineItems(orderData)
+          : ['day', 'night'].includes(unitType)
+            ? getDateRangeQuantityAndLineItems(orderData, code)
+            : {};
 
   const { quantity, units, seats, extraLineItems } = quantityAndExtraLineItems;
 
@@ -218,11 +219,51 @@ exports.transactionLineItems = (listing, orderData, providerCommission, customer
    * By default OrderBreakdown prints line items inside LineItemUnknownItemsMaybe if the lineItem code is not recognized. */
 
   const quantityOrSeats = !!units && !!seats ? { units, seats } : { quantity };
+  // Always set main line item to Flex-expected value
+  let totalUnits = quantity || (units && seats ? units * seats : 1);
+  let lineTotal = new Money(unitPrice.amount * totalUnits, unitPrice.currency);
+  let splitPaymentMetadata = {};
+  const totalBase = unitPrice.amount * (quantity || (units && seats ? units * seats : 1));
+  const isRemainingPayup = orderData?.isRemainingPayup;
+
+  
+  const firstDeposit = !isRemainingPayup ? [
+    {
+    code: 'line-item/split-payment',
+    unitPrice: new Money(Math.ceil(totalBase / 2), currency),
+    quantity: 1,
+    includeFor: ['customer', 'provider'],
+  }
+] : null
+
+let splitPaymentLine = [];
+if (typeof isRemainingPayup !== 'undefined') {
+  if (isRemainingPayup) {
+    // Second payment: charge remaining half
+    splitPaymentLine = [{
+      code: 'line-item/split-payment',
+      unitPrice: new Money(Math.ceil(totalBase / 2), currency),
+      quantity: 1,
+      includeFor: ['customer', 'provider'],
+    }];
+  } else {
+    // First payment: subtract half
+    splitPaymentLine = [{
+      code: 'line-item/split-payment',
+      unitPrice: new Money(-Math.floor(totalBase / 2), currency),
+      quantity: 1,
+      includeFor: ['customer', 'provider'],
+    }];
+  }
+}
+
   const order = {
     code,
     unitPrice,
     ...quantityOrSeats,
     includeFor: ['customer', 'provider'],
+    // ...(lineTotal ? { lineTotal } : {}),
+    // ...(Object.keys(splitPaymentMetadata).length ? { splitPaymentMetadata } : {}),
   };
 
   // Let's keep the base price (order) as first line item and provider and customer commissions as last.
@@ -230,6 +271,8 @@ exports.transactionLineItems = (listing, orderData, providerCommission, customer
   const lineItems = [
     order,
     ...extraLineItems,
+    // ...firstDeposit,
+    ...splitPaymentLine,
     ...getProviderCommissionMaybe(providerCommission, order, priceAttribute),
     ...getCustomerCommissionMaybe(customerCommission, order, priceAttribute),
   ];

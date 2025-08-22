@@ -57,6 +57,7 @@ import {
 } from './TransactionPage.duck';
 import css from './TransactionPage.module.css';
 import { getCurrentUserTypeRoles, hasPermissionToViewData } from '../../util/userHelpers.js';
+import { handleRemainingPayup } from '../CheckoutPage/CheckoutPageWithPayment.js';
 
 // Submit dispute and close the review modal
 const onDisputeOrder = (
@@ -422,6 +423,7 @@ export const TransactionPageComponent = props => {
           sendReviewError,
           onTransition,
           onOpenReviewModal,
+          onPayRemainingRedirect: transaction => onPayRemainingRedirect(transaction),
           intl,
         },
         process
@@ -474,6 +476,62 @@ export const TransactionPageComponent = props => {
   const showBookingLocation =
     isBookingProcess(stateData.processName) &&
     process?.hasPassedState(process?.states?.ACCEPTED, transaction);
+
+  // Handle remaining payment redirect to CheckoutPage
+  const onPayRemainingRedirect = transaction => {
+    console.log("onPayRemainingRedirect - transaction:", transaction);
+    
+    const bookingData = transaction?.booking;
+    console.log(bookingData , "bookingData")
+    const protectedData = transaction?.attributes?.protectedData;
+    const lineItems = transaction?.attributes?.lineItems || [];
+    
+    console.log("onPayRemainingRedirect - lineItems:", lineItems);
+    
+    // Extract quantity/units/seats from original transaction
+    const unitLineItem = lineItems.find(item => 
+      ['line-item/night', 'line-item/day', 'line-item/hour', 'line-item/item'].includes(item.code) && !item.reversal
+    );
+    
+    console.log("onPayRemainingRedirect - unitLineItem:", unitLineItem);
+    
+    const quantity = unitLineItem?.quantity?.toNumber();
+    const units = unitLineItem?.units?.toNumber();
+    const seats = protectedData?.seats;
+    
+    console.log("onPayRemainingRedirect - raw values:", { quantity, units, seats });
+    
+    // Prepare quantity/units/seats data
+    const quantityMaybe = quantity ? { quantity } : {};
+    const unitsMaybe = units ? { units } : {};
+    const seatsMaybe = seats ? { seats } : {};
+    
+    console.log("onPayRemainingRedirect - maybe objects:", { quantityMaybe, unitsMaybe, seatsMaybe });
+    
+    const values = {
+      bookingStartTime: bookingData?.attributes?.start,
+      bookingEndTime: bookingData?.attributes?.end,
+      deliveryMethod: protectedData?.deliveryMethod,
+      service: protectedData?.bookingService ? JSON.parse(protectedData.bookingService) : {},
+      ...quantityMaybe,
+      ...unitsMaybe,
+      ...seatsMaybe,
+    };
+
+    console.log("onPayRemainingRedirect - final values:", values);
+
+    const parameters = {
+      history,
+      currentUser,
+      listing,
+      transactionId: transaction.id,
+      callSetInitialValues,
+      onInitializeCardPaymentData,
+      routes: routeConfiguration
+    };
+
+    handleRemainingPayup({ parameters, values });
+  };
 
   // TransactionPanel is presentational component
   // that currently handles showing everything inside layout's main view area.

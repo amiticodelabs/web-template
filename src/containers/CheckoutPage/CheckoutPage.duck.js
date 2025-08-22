@@ -193,6 +193,7 @@ export const initiateOrder = (
   // If we already have a transaction ID, we should transition, not
   // initiate.
   const isTransition = !!transactionId;
+  console.log("This is initiate Order")
 
   const { deliveryMethod, quantity, bookingDates, ...otherOrderParams } = orderParams;
   const quantityMaybe = quantity ? { stockReservationQuantity: quantity } : {};
@@ -200,12 +201,16 @@ export const initiateOrder = (
 
   // Parameters only for client app's server
   const orderData = deliveryMethod ? { deliveryMethod } : {};
+  console.log(orderData , "orderData")
+  const isRemainingPayup = isTransition && transitionName === 'transition/pay-remaining';
+  console.log('[DEBUG] isRemainingPayup:', isRemainingPayup, 'transitionName:', transitionName, 'isPrivileged:', isPrivilegedTransition);
 
   // Parameters for Marketplace API
   const transitionParams = {
     ...quantityMaybe,
     ...bookingParamsMaybe,
     ...otherOrderParams,
+    isRemainingPayup,
   };
 
   const bodyParams = isTransition
@@ -398,7 +403,7 @@ export const speculateTransaction = (
   // If we already have a transaction ID, we should transition, not
   // initiate.
   const isTransition = !!transactionId;
-
+console.log("this is speculative transcation")
   const {
     deliveryMethod,
     priceVariantName,
@@ -413,13 +418,17 @@ export const speculateTransaction = (
   const orderData = {
     ...(deliveryMethod ? { deliveryMethod } : {}),
     ...(priceVariantName ? { priceVariantName } : {}),
+    ...(quantity ? {quantity} : {}),
   };
-
+  const isRemainingPayup = isTransition ? true : false;
+  console.log('[DEBUG] isRemainingPayup:', isRemainingPayup, 'transitionName:', transitionName, 'isPrivileged:', isPrivilegedTransition);
+console.log(orderData , "orderData")
   // Parameters for Marketplace API
   const transitionParams = {
     ...quantityMaybe,
     ...bookingParamsMaybe,
     ...otherOrderParams,
+    isRemainingPayup,
     cardToken: 'CheckoutPage_speculative_card_token',
   };
 

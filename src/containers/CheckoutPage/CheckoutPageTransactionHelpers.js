@@ -176,6 +176,7 @@ const persistTransaction = (order, pageData, storeData, setPageData, sessionStor
  * @returns Promise that goes through each step in the checkout sequence.
  */
 export const processCheckoutWithPayment = (orderParams, extraPaymentParams) => {
+  console.log("process Checkout With Payment running")
   const {
     hasPaymentIntentUserActionsDone,
     isPaymentFlowUseSavedCard,
@@ -343,6 +344,121 @@ export const processCheckoutWithPayment = (orderParams, extraPaymentParams) => {
   );
 
   return handlePaymentIntentCreation(orderParams);
+};
+
+/**
+ * Create call sequence for remaining payment with Stripe PaymentIntents.
+ *
+ * @param {Object} orderParams contains params for the remaining payment
+ * @param {Object} extraPaymentParams contains extra params needed by the remaining payment sequence
+ * @returns Promise that goes through each step in the remaining payment sequence.
+ */
+export const processRemainingPayment = (orderParams, extraPaymentParams) => {
+  console.log("process remaining payment running")
+  const {
+    hasPaymentIntentUserActionsDone,
+    isPaymentFlowUseSavedCard,
+    onConfirmCardPayment,
+    onConfirmPayment,
+    onInitiateOrder,
+    pageData,
+    paymentIntent,
+    process,
+    setPageData,
+    sessionStorageKey,
+    stripePaymentMethodId,
+  } = extraPaymentParams;
+  const storedTx = ensureTransaction(pageData.transaction);
+  const processAlias = pageData?.listing?.attributes?.publicData?.transactionProcessAlias;
+
+  let createdPaymentIntent = null;
+
+  ////////////////////////////////////////////////
+  // Step 1: initiate remaining payment         //
+  // by requesting payment from Marketplace API //
+  ////////////////////////////////////////////////
+  const fnRequestRemainingPayment = fnParams => {
+    const requestTransition = process.transitions.PAY_REMAINING;
+    const isPrivileged = process.isPrivileged(requestTransition);
+
+    const orderPromise = onInitiateOrder(fnParams, processAlias, storedTx.id, requestTransition, isPrivileged);
+
+    orderPromise.then(order => {
+      // Store the returned transaction (order)
+      persistTransaction(order, pageData, storeData, setPageData, sessionStorageKey);
+    });
+
+    return orderPromise;
+  };
+
+  //////////////////////////////////
+  // Step 2: pay using Stripe SDK //
+  //////////////////////////////////
+  const fnConfirmCardPaymentRemaining = fnParams => {
+    const order = fnParams;
+
+    const hasPaymentIntents = order?.attributes?.protectedData?.stripePaymentIntents;
+    if (!hasPaymentIntents) {
+      throw new Error(
+        `Missing StripePaymentIntents key in transaction's protectedData. Check that your transaction process is configured to use payment intents.`
+      );
+    }
+
+    const { stripePaymentIntentClientSecret } = hasPaymentIntents
+      ? order.attributes.protectedData.stripePaymentIntents.default
+      : null;
+
+    const { stripe, card, billingDetails, paymentIntent } = extraPaymentParams;
+    const stripeElementMaybe = !isPaymentFlowUseSavedCard ? { card } : {};
+
+    const paymentParams = !isPaymentFlowUseSavedCard
+      ? {
+          payment_method: {
+            billing_details: billingDetails,
+            card: card,
+          },
+        }
+      : { payment_method: stripePaymentMethodId };
+
+    const params = {
+      stripePaymentIntentClientSecret,
+      orderId: order?.id,
+      stripe,
+      ...stripeElementMaybe,
+      paymentParams,
+    };
+
+    return hasPaymentIntentUserActionsDone
+      ? Promise.resolve({ transactionId: order?.id, paymentIntent })
+      : onConfirmCardPayment(params);
+  };
+
+  ///////////////////////////////////////////////////
+  // Step 3: complete remaining payment            //
+  // by confirming payment against Marketplace API //
+  ///////////////////////////////////////////////////
+  const fnConfirmRemainingPayment = fnParams => {
+    createdPaymentIntent = fnParams.paymentIntent;
+    const transactionId = fnParams.transactionId;
+    const transitionName = process.transitions.CONFIRM_REMAINING_PAYMENT;
+    
+    return onConfirmPayment(transactionId, transitionName, {}).then(order => {
+      // Store the returned transaction (order)
+      persistTransaction(order, pageData, storeData, setPageData, sessionStorageKey);
+      return order;
+    });
+  };
+
+  // Create promise calls in sequence for remaining payment
+  const applyAsync = (acc, val) => acc.then(val);
+  const composeAsync = (...funcs) => x => funcs.reduce(applyAsync, Promise.resolve(x));
+  const handleRemainingPaymentIntentCreation = composeAsync(
+    fnRequestRemainingPayment,
+    fnConfirmCardPaymentRemaining,
+    fnConfirmRemainingPayment
+  );
+
+  return handleRemainingPaymentIntentCreation(orderParams);
 };
 
 /**

@@ -46,8 +46,14 @@ module.exports = (req, res) => {
       };
 
       if (isSpeculative) {
+        // const idParam = typeof body.id === 'object' && body.id?.uuid ? body.id.uuid : body.id;
+        // const qp = { id: idParam, ...(queryParams || {}) };
+        // return trustedSdk.transactions.transitionSpeculative(body, qp);
         return trustedSdk.transactions.transitionSpeculative(body, queryParams);
       }
+      // const idParam = typeof body.id === 'object' && body.id.uuid ? body.id.uuid : body.id;
+      // const qp = { id: idParam, ...(queryParams || {}) };
+      // return trustedSdk.transactions.transition(body, qp);
       return trustedSdk.transactions.transition(body, queryParams);
     })
     .then(apiResponse => {
