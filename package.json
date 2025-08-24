@@ -23,6 +23,7 @@
     "express-enforces-ssl": "^1.1.0",
     "final-form": "4.20.10",
     "final-form-arrays": "3.1.0",
+    "flex-cli": "^1.14.1",
     "full-icu": "^1.5.0",
     "helmet": "^8.1.0",
     "jose": "5.9.6",
@@ -68,12 +69,16 @@
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^13.5.0",
     "bfj": "^9.1.2",
+    "buffer": "^6.0.3",
     "chalk": "^v4.1.2",
     "concurrently": "^8.2.2",
     "cross-env": "^7.0.3",
-    "inquirer": "^8.2.6",
+    "inquirer": "^12.9.3",
     "nodemon": "^3.1.9",
-    "prettier": "^1.18.2"
+    "prettier": "^1.18.2",
+    "process": "^0.11.10",
+    "stream-browserify": "^3.0.0",
+    "url": "^0.11.4"
   },
   "resolutions": {
     "sharetribe-scripts/webpack-dev-server/express/path-to-regexp": "0.1.12",

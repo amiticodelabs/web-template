@@ -528,7 +528,7 @@ const OrderPanel = props => {
           showCurrencyMismatch
         />
 
-        {isClosed ? (
+        {/* {isClosed ? (
           <div className={css.closedListingButton}>
             <FormattedMessage id="OrderPanel.closedListingButtonText" />
           </div>
@@ -554,7 +554,7 @@ const OrderPanel = props => {
               <FormattedMessage id="OrderPanel.ctaButtonMessageInquiry" />
             )}
           </PrimaryButton>
-        )}
+        )} */}
       </div>
     </div>
   );

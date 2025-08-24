@@ -1,15 +1,16 @@
 {:format :v3,
  :transitions
  [
+  ;; Customer inquires
   {:name :transition/inquire,
    :actor :actor.role/customer,
    :actions [{:name :action/update-protected-data}],
    :to :state/inquiry}
 
   ;; Initiation transition for first half of split payment
-  {:name :transition/initiate-privileged,
+  {:name :transition/request-payment,
    :actor :actor.role/customer,
-   :privileged? true
+   :privileged? true,
    :actions
    [{:name :action/update-protected-data}
     {:name :action/create-pending-booking, :config {:type :time}}
@@ -18,9 +19,9 @@
    :to :state/pending-payment}
 
   ;; Initiation after inquiry
-  {:name :transition/initiate-privileged-after-inquiry,
+  {:name :transition/request-payment-after-inquiry,
    :actor :actor.role/customer,
-   :privileged? true
+   :privileged? true,
    :actions
    [{:name :action/update-protected-data}
     {:name :action/create-pending-booking, :config {:type :time}}
@@ -29,6 +30,7 @@
    :from :state/inquiry,
    :to :state/pending-payment}
 
+  ;; Payment expiration for first half
   {:name :transition/expire-payment,
    :at
    {:fn/plus
@@ -41,6 +43,7 @@
    :from :state/pending-payment,
    :to :state/payment-expired}
 
+  ;; Confirm first payment
   {:name :transition/confirm-payment,
    :actor :actor.role/customer,
    :actions [{:name :action/stripe-confirm-payment-intent}],
@@ -48,34 +51,35 @@
    :to :state/preauthorized}
 
   ;; Provider accepts after first half paid
-{:name :transition/accept,
- :actor :actor.role/provider,
- ;; :privileged? true ;; not needed if only creating payment intent
- :actions
- [{:name :action/stripe-create-payment-intent}],
- :from :state/preauthorized,
- :to :state/pending-remaining-amount}
+  {:name :transition/accept,
+   :actor :actor.role/provider,
+   :actions [{:name :action/stripe-create-payment-intent}],
+   :from :state/preauthorized,
+   :to :state/pending-remaining-amount}
 
-  ;; Customer pays the remaining amount
+  ;; Customer pays remaining amount
   {:name :transition/pay-remaining,
- :actor :actor.role/customer,
- :privileged? true,
- :actions
- [{:name :action/privileged-set-line-items}
-  {:name :action/stripe-create-payment-intent}],
- :from :state/pending-remaining-amount,
- :to :state/pending-remaining-payment}
+   :actor :actor.role/customer,
+   :privileged? true,
+   :actions
+   [{:name :action/update-protected-data}
+   {:name :action/privileged-set-line-items}
+    {:name :action/stripe-create-payment-intent}],
+   :from :state/pending-remaining-amount,
+   :to :state/pending-remaining-payment}
 
-  ;; Confirm the remaining payment
+  ;; Confirm remaining payment
   {:name :transition/confirm-remaining-payment,
- :actor :actor.role/customer,
- :actions
- [{:name :action/stripe-confirm-payment-intent}
-  {:name :action/stripe-create-payout}],
- :from :state/pending-remaining-payment,
- :to :state/delivered}
+   :actor :actor.role/customer,
+   :actions
+   [{:name :action/stripe-confirm-payment-intent}
+   {:name :action/stripe-capture-payment-intent}
+   {:name :action/stripe-create-payout}
+  ],
+   :from :state/pending-remaining-payment,
+   :to :state/delivered}
 
-
+  ;; Operator accepts preauthorized
   {:name :transition/operator-accept,
    :actor :actor.role/operator,
    :actions
@@ -84,6 +88,7 @@
    :from :state/preauthorized,
    :to :state/accepted}
 
+  ;; Provider declines
   {:name :transition/decline,
    :actor :actor.role/provider,
    :actions
@@ -93,6 +98,7 @@
    :from :state/preauthorized,
    :to :state/declined}
 
+  ;; Operator declines
   {:name :transition/operator-decline,
    :actor :actor.role/operator,
    :actions
@@ -102,6 +108,7 @@
    :from :state/preauthorized,
    :to :state/declined}
 
+  ;; Booking expires if not accepted
   {:name :transition/expire,
    :at
    {:fn/min
@@ -118,6 +125,7 @@
    :from :state/preauthorized,
    :to :state/expired}
 
+  ;; Booking completed
   {:name :transition/complete,
    :at
    {:fn/plus
@@ -132,6 +140,7 @@
    :from :state/accepted,
    :to :state/delivered}
 
+  ;; Booking canceled by operator
   {:name :transition/cancel,
    :actor :actor.role/operator,
    :actions
@@ -141,6 +150,7 @@
    :from :state/accepted,
    :to :state/cancelled}
 
+  ;; Reviews
   {:name :transition/review-1-by-provider,
    :actor :actor.role/provider,
    :actions [{:name :action/post-review-by-provider}],
@@ -169,6 +179,7 @@
    :from :state/reviewed-by-provider,
    :to :state/reviewed}
 
+  ;; Review expiration
   {:name :transition/expire-review-period,
    :at
    {:fn/plus
@@ -193,20 +204,11 @@
    :from :state/reviewed-by-provider,
    :to :state/reviewed}],
 
- ;; Notifications unchanged except those for split payment
  :notifications
  [{:name :notification/booking-new-request,
    :on :transition/confirm-payment,
    :to :actor.role/provider,
    :template :booking-new-request}
-  ;; {:name :notification/booking-needs-customer-confirmation,
-  ;;  :on :transition/accept,
-  ;;  :to :actor.role/customer,
-  ;;  :template :booking-needs-customer-confirmation}
-  ;; {:name :notification/booking-operator-needs-customer-confirmation,
-  ;;  :on :transition/operator-accept,
-  ;;  :to :actor.role/customer,
-  ;;  :template :booking-operator-needs-customer-confirmation}
   {:name :notification/booking-accepted-request,
    :on :transition/accept,
    :to :actor.role/customer,
@@ -218,7 +220,7 @@
   {:name :notification/booking-operator-accepted-request-to-provider,
    :on :transition/operator-accept,
    :to :actor.role/provider,
-   :template :booking-operator-accepted-request}
+   :template :booking-accepted-request}
   {:name :notification/booking-declined-request,
    :on :transition/decline,
    :to :actor.role/customer,

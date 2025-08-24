@@ -8,6 +8,11 @@ import { sanitizeEntity } from './sanitize';
  *
  * See: http://jsonapi.org/format/#document-resource-object-relationships
  */
+export const getOnGoingListings = (currentUser) => {
+  const { onGoingingListings = [] } = currentUser?.attributes?.profile?.privateData || {}
+  return onGoingingListings;
+}
+
 export const combinedRelationships = (oldRels, newRels) => {
   if (!oldRels && !newRels) {
     // Special case to avoid adding an empty relationships object when

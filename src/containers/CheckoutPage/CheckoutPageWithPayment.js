@@ -5,7 +5,7 @@ import { FormattedMessage, intlShape } from '../../util/reactIntl';
 import { createResourceLocatorString, findRouteByRouteName, pathByRouteName } from '../../util/routes';
 import { isValidCurrencyForTransactionProcess } from '../../util/fieldHelpers.js';
 import { propTypes } from '../../util/types';
-import { ensureTransaction } from '../../util/data';
+import { ensureTransaction, getOnGoingListings } from '../../util/data';
 import { createSlug } from '../../util/urlHelpers';
 import { isTransactionInitiateListingNotFoundError } from '../../util/errors';
 import { getProcess, isBookingProcessAlias } from '../../transactions/transaction';
@@ -22,7 +22,6 @@ import {
   hasPaymentExpired,
   hasTransactionPassedPendingPayment,
   processCheckoutWithPayment,
-  processRemainingPayment,
   setOrderPageInitialValues,
 } from './CheckoutPageTransactionHelpers.js';
 import { getErrorMessages } from './ErrorMessages';
@@ -97,9 +96,7 @@ const prefixPriceVariantProperties = priceVariant => {
  * @param {Object} config app-wide configs. This contains hosted configs too.
  * @returns orderParams.
  */
-const getOrderParams = (pageData, shippingDetails, optionalPaymentParams, config, isRemainingPayup = false) => {
-  console.log("order data", pageData);
-  
+const getOrderParams = (pageData, shippingDetails, optionalPaymentParams, config) => {
   const quantity = pageData.orderData?.quantity;
   const quantityMaybe = quantity ? { quantity } : {};
   const seats = pageData.orderData?.seats;
@@ -108,10 +105,7 @@ const getOrderParams = (pageData, shippingDetails, optionalPaymentParams, config
   const unitsMaybe = units ? { units } : {};
   const deliveryMethod = pageData.orderData?.deliveryMethod;
   const deliveryMethodMaybe = deliveryMethod ? { deliveryMethod } : {};
-  console.log(pageData.orderData.bookingDates , "booking dates from order data")
-  
-  console.log("getOrderParams - extracted values:", { quantity, seats, units, quantityMaybe, seatsMaybe, unitsMaybe });
-  
+
   const { listingType, unitType, priceVariants } = pageData?.listing?.attributes?.publicData || {};
 
   // price variant data for fixed duration bookings
@@ -148,10 +142,9 @@ const getOrderParams = (pageData, shippingDetails, optionalPaymentParams, config
     ...priceVariantNameMaybe,
     ...protectedDataMaybe,
     ...optionalPaymentParams,
-    isRemainingPayup : pageData.orderData?.isRemainingPayup || isRemainingPayup,
+    isRemainingPayup: pageData.orderData?.isRemainingPayup || false,
   };
-  
-  console.log("getOrderParams - final orderParams:", orderParams);
+
   return orderParams;
 };
 
@@ -163,12 +156,17 @@ const fetchSpeculatedTransactionIfNeeded = (orderParams, pageData, fetchSpeculat
     pageDataListing?.attributes?.publicData?.transactionProcessAlias?.split('/')[0];
   const process = processName ? getProcess(processName) : null;
 
+  // Check if this is a remaining payment
+  const isRemainingPayment = pageData.orderData?.isRemainingPayup === true;
+
   // If transaction has passed payment-pending state, speculated tx is not needed.
+  // Also skip speculation for remaining payments since we already have the transaction data
   const shouldFetchSpeculatedTransaction =
     !!pageData?.listing?.id &&
     !!pageData.orderData &&
     !!process &&
-    !hasTransactionPassedPendingPayment(tx, process);
+    !hasTransactionPassedPendingPayment(tx, process) &&
+    !isRemainingPayment;
 
   if (shouldFetchSpeculatedTransaction) {
     const processAlias = pageData.listing.attributes.publicData?.transactionProcessAlias;
@@ -207,13 +205,43 @@ const fetchSpeculatedTransactionIfNeeded = (orderParams, pageData, fetchSpeculat
  * This function also sets of fetching the speculative transaction
  * based on this initial data.
  */
+// export const loadInitialDataForStripePayments = ({
+//   pageData,
+//   fetchSpeculatedTransaction,
+//   fetchStripeCustomer,
+//   config,
+// }) => {
+//   // Fetch currentUser with stripeCustomer entity
+//   // Note: since there's need for data loading in "componentWillMount" function,
+//   //       this is added here instead of loadData static function.
+//   fetchStripeCustomer();
+
+//   // Check if this is a remaining payment
+//   const isRemainingPayment = pageData.orderData?.isRemainingPayup === true;
+
+//   if (isRemainingPayment) {
+//     // For remaining payments, we already have the transaction with line items
+//     // No need to fetch speculated transaction - this avoids booking time conflicts
+//     console.log("Skipping speculated transaction for remaining payment - using existing transaction data");
+//     return;
+//   }
+
+//   // Fetch speculated transaction for showing price in order breakdown
+//   // NOTE: if unit type is line-item/item, quantity needs to be added.
+//   // The way to pass it to checkout page is through pageData.orderData
+//   const shippingDetails = {};
+//   const optionalPaymentParams = {};
+//   const orderParams = getOrderParams(pageData, shippingDetails, optionalPaymentParams, config);
+
+//   fetchSpeculatedTransactionIfNeeded(orderParams, pageData, fetchSpeculatedTransaction);
+// };
+
 export const loadInitialDataForStripePayments = ({
   pageData,
   fetchSpeculatedTransaction,
   fetchStripeCustomer,
   config,
 }) => {
-  console.log("load initial data for stripe")
   // Fetch currentUser with stripeCustomer entity
   // Note: since there's need for data loading in "componentWillMount" function,
   //       this is added here instead of loadData static function.
@@ -224,17 +252,17 @@ export const loadInitialDataForStripePayments = ({
   // The way to pass it to checkout page is through pageData.orderData
   const shippingDetails = {};
   const optionalPaymentParams = {};
-  const orderParams = getOrderParams(pageData, shippingDetails, optionalPaymentParams, config, false); // isRemainingPayup: false for first payment
+  const orderParams = getOrderParams(pageData, shippingDetails, optionalPaymentParams, config);
 
   fetchSpeculatedTransactionIfNeeded(orderParams, pageData, fetchSpeculatedTransaction);
 };
 
 export const handleRemainingPayup = ({ parameters, values }) => {
-  console.log("handle remaining payup running");
   const {
     history,
     currentUser,
     listing,
+    transaction,
     transactionId,
     callSetInitialValues,
     onInitializeCardPaymentData,
@@ -252,18 +280,23 @@ export const handleRemainingPayup = ({ parameters, values }) => {
     ...otherOrderData
   } = values;
 
-  console.log(bookingStartTime , bookingEndTime , "booking time")
-
   // Create booking dates if available
+  // const bookingMaybe = bookingStartTime && bookingEndTime
+  //   ? {
+  //       bookingDates: {
+  //         bookingStart: timestampToDate(bookingStartTime),
+  //         bookingEnd: timestampToDate(bookingEndTime),
+  //       },
+  //     }
+  //   : {};
   const bookingMaybe = bookingStartTime && bookingEndTime
     ? {
-        bookingDates: {
-          bookingStart: timestampToDate(bookingStartTime),
-          bookingEnd: timestampToDate(bookingEndTime),
-        },
-      }
+      bookingDates: {
+        bookingStart: new Date(bookingStartTime),
+        bookingEnd: new Date(bookingEndTime),
+      },
+    }
     : {};
-    console.log(bookingMaybe , "bookingMaybe")
 
   const deliveryMethodMaybe = deliveryMethod ? { deliveryMethod } : {};
   const quantityMaybe = quantity ? { quantity } : {};
@@ -273,6 +306,8 @@ export const handleRemainingPayup = ({ parameters, values }) => {
   // Set up initial values for remaining payment checkout
   const initialValues = {
     listing,
+    // Include the parent transaction so order breakdown can show line items
+    // transaction: parameters.transaction,
     orderData: {
       isRemainingPayup: true,
       parentTransactionId: transactionId,
@@ -288,7 +323,7 @@ export const handleRemainingPayup = ({ parameters, values }) => {
 
   const saveToSessionStorage = true;
   // const saveToSessionStorage = !currentUser;
-  
+
   // Customize checkout page state with current listing and selected orderData
   const { setInitialValues } = findRouteByRouteName('CheckoutPage', routes);
   callSetInitialValues(setInitialValues, initialValues, saveToSessionStorage);
@@ -307,7 +342,7 @@ export const handleRemainingPayup = ({ parameters, values }) => {
   );
 };
 
-const handleSubmit = (values, process, props, stripe, submitting, setSubmitting, isRemainingPayment) => {
+const handleSubmit = (values, process, props, stripe, submitting, setSubmitting) => {
   if (submitting) {
     return;
   }
@@ -322,6 +357,7 @@ const handleSubmit = (values, process, props, stripe, submitting, setSubmitting,
     stripeCustomerFetched,
     paymentIntent,
     dispatch,
+    listing,
     onInitiateOrder,
     onConfirmCardPayment,
     onConfirmPayment,
@@ -331,9 +367,12 @@ const handleSubmit = (values, process, props, stripe, submitting, setSubmitting,
     pageData,
     setPageData,
     sessionStorageKey,
+    processName,
+    onUpdateProfile
   } = props;
   const { card, message, paymentMethod: selectedPaymentMethod, formValues } = values;
   const { saveAfterOnetimePayment: saveAfterOnetimePaymentRaw } = formValues;
+  const { parentTransactionId = null } = pageData?.orderData || {};
 
   const saveAfterOnetimePayment =
     Array.isArray(saveAfterOnetimePaymentRaw) && saveAfterOnetimePaymentRaw.length > 0;
@@ -369,6 +408,7 @@ const handleSubmit = (values, process, props, stripe, submitting, setSubmitting,
     isPaymentFlowUseSavedCard: selectedPaymentFlow === USE_SAVED_CARD,
     isPaymentFlowPayAndSaveCard: selectedPaymentFlow === PAY_AND_SAVE_FOR_LATER_USE,
     setPageData,
+    processName
   };
 
   const shippingDetails = getShippingDetailsMaybe(formValues);
@@ -383,16 +423,25 @@ const handleSubmit = (values, process, props, stripe, submitting, setSubmitting,
         : {};
 
   // These are the order parameters for the payment-related transition
-  const orderParams = getOrderParams(pageData, shippingDetails, optionalPaymentParams, config, isRemainingPayment);
+  const orderParams = getOrderParams(pageData, shippingDetails, optionalPaymentParams, config);
 
   // There are multiple XHR calls that needs to be made against Stripe API and Sharetribe Marketplace API on checkout with payments
-  // Use different payment processing function based on whether this is a remaining payment
-  const paymentProcessor = isRemainingPayment ? processRemainingPayment : processCheckoutWithPayment;
-  // const paymentProcessor = isRemainingPayment ? handleRemainingPayup : processCheckoutWithPayment;
-  paymentProcessor(orderParams, requestPaymentParams)
+  processCheckoutWithPayment(orderParams, requestPaymentParams)
     .then(response => {
       const { orderId, messageSuccess, paymentMethodSaved } = response;
       setSubmitting(false);
+
+      if (parentTransactionId == null) {
+        // adding the current onGoing listing in the private data
+        const currentUserOnGoingListings = getOnGoingListings(currentUser) || []; // This will get all listingIds of ongoing transactions of the currentUser
+        const currListingId = listing?.id?.uuid || "";
+        const updateData = {
+          privateData: {
+            onGoingingListings: [...new Set([...currentUserOnGoingListings, currListingId])]
+          }
+        }
+        onUpdateProfile(updateData);
+      }
 
       const initialMessageFailedToTransaction = messageSuccess ? null : orderId;
       const orderDetailsPath = pathByRouteName('OrderDetailsPage', routeConfiguration, {
@@ -405,7 +454,12 @@ const handleSubmit = (values, process, props, stripe, submitting, setSubmitting,
 
       setOrderPageInitialValues(initialValues, routeConfiguration, dispatch);
       onSubmitCallback();
-      history.push(orderDetailsPath);
+
+      if (parentTransactionId !== null) {
+        return history.push(createResourceLocatorString('OrderDetailsPage', routeConfiguration, { id: parentTransactionId.uuid, slug: 'no-slug' }, { paymentSuccess: true, paymentId: String(orderId.uuid) }));
+      }
+
+      return history.push(orderDetailsPath);
     })
     .catch(err => {
       console.error(err);
@@ -685,7 +739,7 @@ export const CheckoutPageWithPayment = props => {
               <StripePaymentForm
                 className={css.paymentForm}
                 onSubmit={values =>
-                  handleSubmit(values, process, props, stripe, submitting, setSubmitting, isRemainingPayment)
+                  handleSubmit(values, process, props, stripe, submitting, setSubmitting)
                 }
                 inProgress={submitting}
                 formId="CheckoutPagePaymentForm"
@@ -716,6 +770,7 @@ export const CheckoutPageWithPayment = props => {
                 marketplaceName={config.marketplaceName}
                 isBooking={isBookingProcessAlias(transactionProcessAlias)}
                 isFuzzyLocation={config.maps.fuzzy.enabled}
+                pageData={pageData}
               />
             ) : null}
           </section>
@@ -749,25 +804,25 @@ export default CheckoutPageWithPayment;
  */
 const bookingDatesMaybe = bookingDates => {
   console.log("bookingDatesMaybe - input bookingDates:", bookingDates);
-  
+
   const { bookingStart, bookingEnd } = bookingDates || {};
-  
+
   // Handle both Date objects and timestamp strings
-  const startDate = bookingStart instanceof Date ? bookingStart : 
-                   bookingStart ? new Date(bookingStart) : null;
-  const endDate = bookingEnd instanceof Date ? bookingEnd : 
-                 bookingEnd ? new Date(bookingEnd) : null;
-  
+  const startDate = bookingStart instanceof Date ? bookingStart :
+    bookingStart ? new Date(bookingStart) : null;
+  const endDate = bookingEnd instanceof Date ? bookingEnd :
+    bookingEnd ? new Date(bookingEnd) : null;
+
   console.log("bookingDatesMaybe - processed dates:", { startDate, endDate });
-  
+
   const bookingStartMaybe = startDate ? { bookingStart: startDate } : {};
   const bookingEndMaybe = endDate ? { bookingEnd: endDate } : {};
-  
+
   const result = {
     ...bookingStartMaybe,
     ...bookingEndMaybe,
   };
-  
+
   console.log("bookingDatesMaybe - result:", result);
   return result;
 };

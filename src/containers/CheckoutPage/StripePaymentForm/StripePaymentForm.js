@@ -179,8 +179,8 @@ const getPaymentMethod = (selectedPaymentMethod, hasDefaultPaymentMethod) => {
   return selectedPaymentMethod == null && hasDefaultPaymentMethod
     ? 'defaultCard'
     : selectedPaymentMethod == null
-    ? 'onetimeCardPayment'
-    : selectedPaymentMethod;
+      ? 'onetimeCardPayment'
+      : selectedPaymentMethod;
 };
 
 // Should we show onetime payment fields and does StripeElements card need attention
@@ -222,8 +222,8 @@ const LocationOrShippingDetails = props => {
   const locationDetails = listingLocation?.building
     ? `${listingLocation.building}, ${listingLocation.address}`
     : listingLocation?.address
-    ? listingLocation.address
-    : intl.formatMessage({ id: 'StripePaymentForm.locationUnknown' });
+      ? listingLocation.address
+      : intl.formatMessage({ id: 'StripePaymentForm.locationUnknown' });
 
   return askShippingDetails ? (
     <ShippingDetails intl={intl} formApi={formApi} locale={locale} />
@@ -288,6 +288,7 @@ const initialState = {
  * @param {Object} props.listingLocation.address - The address
  * @param {boolean} props.isBooking - Whether the booking is in progress
  * @param {boolean} props.isFuzzyLocation - Whether the location is fuzzy
+ * @param {Object} props.pageData - The page data containing order information
  * @param {Object} props.intl - The intl object
  */
 class StripePaymentForm extends Component {
@@ -475,6 +476,7 @@ class StripePaymentForm extends Component {
       isBooking,
       isFuzzyLocation,
       values,
+      pageData,
     } = formRenderProps;
 
     this.finalFormAPI = formApi;
@@ -513,10 +515,10 @@ class StripePaymentForm extends Component {
       confirmCardPaymentError && confirmCardPaymentError.code === piAuthenticationFailure
         ? intl.formatMessage({ id: 'StripePaymentForm.confirmCardPaymentError' })
         : confirmCardPaymentError
-        ? confirmCardPaymentError.message
-        : confirmPaymentError
-        ? intl.formatMessage({ id: 'StripePaymentForm.confirmPaymentError' })
-        : intl.formatMessage({ id: 'StripePaymentForm.genericError' });
+          ? confirmCardPaymentError.message
+          : confirmPaymentError
+            ? intl.formatMessage({ id: 'StripePaymentForm.confirmPaymentError' })
+            : intl.formatMessage({ id: 'StripePaymentForm.genericError' });
 
     const billingDetailsNameLabel = intl.formatMessage({
       id: 'StripePaymentForm.billingDetailsNameLabel',
@@ -676,10 +678,18 @@ class StripePaymentForm extends Component {
             disabled={submitDisabled}
           >
             {billingDetailsNeeded ? (
-              <FormattedMessage
-                id="StripePaymentForm.submitPaymentInfo"
-                values={{ totalPrice: totalPriceMaybe, isBooking: isBookingYesNo }}
-              />
+              // Check if this is a remaining payment and customize button text
+              pageData?.orderData?.isRemainingPayup ? (
+                <FormattedMessage
+                  id="StripePaymentForm.submitRemainingPaymentInfo"
+                  values={{ totalPrice: totalPriceMaybe }}
+                />
+              ) : (
+                <FormattedMessage
+                  id="StripePaymentForm.submitPaymentInfo"
+                  values={{ totalPrice: totalPriceMaybe, isBooking: isBookingYesNo }}
+                />
+              )
             ) : (
               <FormattedMessage
                 id="StripePaymentForm.submitConfirmPaymentInfo"
@@ -703,8 +713,8 @@ class StripePaymentForm extends Component {
   }
 
   render() {
-    const { onSubmit, ...rest } = this.props;
-    return <FinalForm onSubmit={this.handleSubmit} {...rest} render={this.paymentForm} />;
+    const { onSubmit, pageData, ...rest } = this.props;
+    return <FinalForm onSubmit={this.handleSubmit} {...rest} pageData={pageData} render={this.paymentForm} />;
   }
 }
 

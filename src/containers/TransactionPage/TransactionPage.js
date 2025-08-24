@@ -58,6 +58,7 @@ import {
 import css from './TransactionPage.module.css';
 import { getCurrentUserTypeRoles, hasPermissionToViewData } from '../../util/userHelpers.js';
 import { handleRemainingPayup } from '../CheckoutPage/CheckoutPageWithPayment.js';
+import { processRemainingPayment } from '../CheckoutPage/CheckoutPageTransactionHelpers.js';
 
 // Submit dispute and close the review modal
 const onDisputeOrder = (
@@ -243,19 +244,19 @@ export const TransactionPageComponent = props => {
 
     const bookingMaybe = bookingDates
       ? {
-          bookingDates: {
-            bookingStart: bookingDates.startDate,
-            bookingEnd: bookingDates.endDate,
-          },
-        }
+        bookingDates: {
+          bookingStart: bookingDates.startDate,
+          bookingEnd: bookingDates.endDate,
+        },
+      }
       : bookingStartTime && bookingEndTime
-      ? {
+        ? {
           bookingDates: {
             bookingStart: timestampToDate(bookingStartTime),
             bookingEnd: timestampToDate(bookingEndTime),
           },
         }
-      : {};
+        : {};
 
     // priceVariantName is relevant for bookings
     const priceVariantNameMaybe = priceVariantName ? { priceVariantName } : {};
@@ -297,19 +298,19 @@ export const TransactionPageComponent = props => {
     const transitionOptions =
       transactionRole === CUSTOMER
         ? {
-            reviewAsFirst: transitions.REVIEW_1_BY_CUSTOMER,
-            reviewAsSecond: transitions.REVIEW_2_BY_CUSTOMER,
-            hasOtherPartyReviewedFirst: process
-              .getTransitionsToStates([states.REVIEWED_BY_PROVIDER])
-              .includes(transaction.attributes.lastTransition),
-          }
+          reviewAsFirst: transitions.REVIEW_1_BY_CUSTOMER,
+          reviewAsSecond: transitions.REVIEW_2_BY_CUSTOMER,
+          hasOtherPartyReviewedFirst: process
+            .getTransitionsToStates([states.REVIEWED_BY_PROVIDER])
+            .includes(transaction.attributes.lastTransition),
+        }
         : {
-            reviewAsFirst: transitions.REVIEW_1_BY_PROVIDER,
-            reviewAsSecond: transitions.REVIEW_2_BY_PROVIDER,
-            hasOtherPartyReviewedFirst: process
-              .getTransitionsToStates([states.REVIEWED_BY_CUSTOMER])
-              .includes(transaction.attributes.lastTransition),
-          };
+          reviewAsFirst: transitions.REVIEW_1_BY_PROVIDER,
+          reviewAsSecond: transitions.REVIEW_2_BY_PROVIDER,
+          hasOtherPartyReviewedFirst: process
+            .getTransitionsToStates([states.REVIEWED_BY_CUSTOMER])
+            .includes(transaction.attributes.lastTransition),
+        };
     const params = { reviewRating: rating, reviewContent };
 
     onSendReview(transaction, transitionOptions, params, config)
@@ -413,28 +414,28 @@ export const TransactionPageComponent = props => {
 
   const stateData = isDataAvailable
     ? getStateData(
-        {
-          transaction,
-          transactionRole,
-          nextTransitions,
-          transitionInProgress,
-          transitionError,
-          sendReviewInProgress,
-          sendReviewError,
-          onTransition,
-          onOpenReviewModal,
-          onPayRemainingRedirect: transaction => onPayRemainingRedirect(transaction),
-          intl,
-        },
-        process
-      )
+      {
+        transaction,
+        transactionRole,
+        nextTransitions,
+        transitionInProgress,
+        transitionError,
+        sendReviewInProgress,
+        sendReviewError,
+        onTransition,
+        onOpenReviewModal,
+        onPayRemainingRedirect: transaction => onPayRemainingRedirect(transaction),
+        intl,
+      },
+      process
+    )
     : {};
 
   const hasLineItems = transaction?.attributes?.lineItems?.length > 0;
   const unitLineItem = hasLineItems
     ? transaction.attributes?.lineItems?.find(
-        item => LISTING_UNIT_TYPES.includes(item.code) && !item.reversal
-      )
+      item => LISTING_UNIT_TYPES.includes(item.code) && !item.reversal
+    )
     : null;
 
   const formatLineItemUnitType = (transaction, listing) => {
@@ -449,8 +450,8 @@ export const TransactionPageComponent = props => {
   const lineItemUnitType = unitLineItem
     ? unitLineItem.code
     : isDataAvailable
-    ? formatLineItemUnitType(transaction, listing)
-    : null;
+      ? formatLineItemUnitType(transaction, listing)
+      : null;
 
   const timeZone = listing?.attributes?.availabilityPlan?.timezone;
 
@@ -459,17 +460,17 @@ export const TransactionPageComponent = props => {
   const txBookingMaybe = booking?.id ? { booking, timeZone } : {};
   const orderBreakdownMaybe = hasLineItems
     ? {
-        orderBreakdown: (
-          <OrderBreakdown
-            className={css.breakdown}
-            userRole={transactionRole}
-            transaction={transaction}
-            {...txBookingMaybe}
-            currency={config.currency}
-            marketplaceName={config.marketplaceName}
-          />
-        ),
-      }
+      orderBreakdown: (
+        <OrderBreakdown
+          className={css.breakdown}
+          userRole={transactionRole}
+          transaction={transaction}
+          {...txBookingMaybe}
+          currency={config.currency}
+          marketplaceName={config.marketplaceName}
+        />
+      ),
+    }
     : {};
 
   // The location of the booking can be shown if fuzzy location
@@ -479,35 +480,24 @@ export const TransactionPageComponent = props => {
 
   // Handle remaining payment redirect to CheckoutPage
   const onPayRemainingRedirect = transaction => {
-    console.log("onPayRemainingRedirect - transaction:", transaction);
-    
     const bookingData = transaction?.booking;
-    console.log(bookingData , "bookingData")
     const protectedData = transaction?.attributes?.protectedData;
     const lineItems = transaction?.attributes?.lineItems || [];
-    
-    console.log("onPayRemainingRedirect - lineItems:", lineItems);
-    
+
     // Extract quantity/units/seats from original transaction
-    const unitLineItem = lineItems.find(item => 
+    const unitLineItem = lineItems.find(item =>
       ['line-item/night', 'line-item/day', 'line-item/hour', 'line-item/item'].includes(item.code) && !item.reversal
     );
-    
-    console.log("onPayRemainingRedirect - unitLineItem:", unitLineItem);
-    
+
     const quantity = unitLineItem?.quantity?.toNumber();
     const units = unitLineItem?.units?.toNumber();
     const seats = protectedData?.seats;
-    
-    console.log("onPayRemainingRedirect - raw values:", { quantity, units, seats });
-    
+
     // Prepare quantity/units/seats data
     const quantityMaybe = quantity ? { quantity } : {};
     const unitsMaybe = units ? { units } : {};
     const seatsMaybe = seats ? { seats } : {};
-    
-    console.log("onPayRemainingRedirect - maybe objects:", { quantityMaybe, unitsMaybe, seatsMaybe });
-    
+
     const values = {
       bookingStartTime: bookingData?.attributes?.start,
       bookingEndTime: bookingData?.attributes?.end,
@@ -518,12 +508,11 @@ export const TransactionPageComponent = props => {
       ...seatsMaybe,
     };
 
-    console.log("onPayRemainingRedirect - final values:", values);
-
     const parameters = {
       history,
       currentUser,
       listing,
+      transaction, // Pass the full transaction object for order breakdown
       transactionId: transaction.id,
       callSetInitialValues,
       onInitializeCardPaymentData,
@@ -531,6 +520,7 @@ export const TransactionPageComponent = props => {
     };
 
     handleRemainingPayup({ parameters, values });
+    // processRemainingPayment({ parameters, values });
   };
 
   // TransactionPanel is presentational component

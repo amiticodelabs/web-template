@@ -45,6 +45,7 @@ import CheckoutPageWithPayment, {
 } from './CheckoutPageWithPayment';
 import CheckoutPageWithInquiryProcess from './CheckoutPageWithInquiryProcess';
 
+
 const STORAGE_KEY = 'CheckoutPage';
 
 const onSubmitCallback = () => {
@@ -56,8 +57,8 @@ const getProcessName = pageData => {
   const processName = transaction?.id
     ? transaction?.attributes?.processName
     : listing?.id
-    ? listing?.attributes?.publicData?.transactionProcessAlias?.split('/')[0]
-    : null;
+      ? listing?.attributes?.publicData?.transactionProcessAlias?.split('/')[0]
+      : null;
   return resolveLatestProcessName(processName);
 };
 
@@ -80,6 +81,7 @@ const EnhancedCheckoutPage = props => {
     } = props;
     const initialData = { orderData, listing, transaction };
     const data = handlePageData(initialData, STORAGE_KEY, history);
+    console.log(data, initialData, "data");
     setPageData(data || {});
     setIsDataLoaded(true);
 
@@ -159,9 +161,9 @@ const EnhancedCheckoutPage = props => {
   const authorDisplayName = userDisplayNameAsString(listing?.author, '');
   const title = processName
     ? intl.formatMessage(
-        { id: `CheckoutPage.${processName}.title` },
-        { listingTitle, authorDisplayName }
-      )
+      { id: `CheckoutPage.${processName}.title` },
+      { listingTitle, authorDisplayName }
+    )
     : 'Checkout page is loading data';
 
   return processName && isInquiryProcess ? (
